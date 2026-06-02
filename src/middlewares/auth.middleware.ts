@@ -20,6 +20,7 @@
 import type { Request, Response, NextFunction } from "express";
 import { verifyToken } from "../utils/jwt.utils";
 import type { AuthTokenPayload } from "../utils/jwt.utils";
+import { isTokenRevoked } from "../repositories/token.repository";
 
 const isAuthTokenPayload = (payload: unknown): payload is AuthTokenPayload => {
   if (!payload || typeof payload !== "object") return false;
@@ -67,9 +68,16 @@ export const authenticate = (req: Request, res: Response, next: NextFunction): v
       });
       return;
     }
-    
+    // Check if the token has been revoked (logout or admin revocation).
+    // `isTokenRevoked` expects the raw token string.
+    const revoked = await isTokenRevoked(token as string);
+    if (revoked) {
+      res.status(401).json({ message: "Unauthorized: Token revoked", data: null });
+      return;
+    }
+
     // Attach the validated user payload to the request for downstream handlers.
-    req.user = decoded;
+    req.user = decoded as AuthTokenPayload;
     next();
   } catch (error) {
     // Any verification error results in a 401 response to the client.

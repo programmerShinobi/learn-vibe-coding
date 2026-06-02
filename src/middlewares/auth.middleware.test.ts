@@ -10,9 +10,14 @@ import type { NextFunction, Request } from "express";
 import { createMockResponse } from "../test-utils/http";
 
 const verifyTokenMock = mock(() => ({ id: 1, email: "user@example.com" }));
+const isTokenRevokedMock = mock(() => false);
 
 mock.module("../utils/jwt.utils", () => ({
   verifyToken: verifyTokenMock,
+}));
+
+mock.module("../repositories/token.repository", () => ({
+  isTokenRevoked: isTokenRevokedMock,
 }));
 
 const { authenticate } = await import("./auth.middleware");
