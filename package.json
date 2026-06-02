@@ -5,6 +5,7 @@
   "private": true,
   "scripts": {
     "dev": "bun run --watch src/server.ts",
+    "test": "bun test --isolate",
     "db:generate": "drizzle-kit generate",
     "db:push": "drizzle-kit push"
   },
