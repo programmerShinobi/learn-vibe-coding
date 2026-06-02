@@ -16,7 +16,7 @@ const PORT = process.env.PORT || 3000;
  * Prints a styled ASCII banner to the terminal when the server starts.
  * Uses ANSI escape codes for colors — no extra dependencies required.
  */
-const printBanner = (port: number | string) => {
+export const printBanner = (port: number | string) => {
   console.log(`
 ${CYAN}${BOLD}  ███╗   ██╗ ██████╗ ████████╗███████╗███████╗
   ████╗  ██║██╔═══██╗╚══██╔══╝██╔════╝██╔════╝
@@ -34,7 +34,12 @@ ${DIM}  ────────────────────────
   `);
 };
 
-// Start the Express HTTP server
-app.listen(PORT, () => {
-  printBanner(PORT);
-});
+export const startServer = () => {
+  return app.listen(PORT, () => {
+    printBanner(PORT);
+  });
+};
+
+if (import.meta.main) {
+  startServer();
+}
