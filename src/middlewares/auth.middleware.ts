@@ -69,15 +69,24 @@ export const authenticate = async (req: Request, res: Response, next: NextFuncti
       return;
     }
     // Check if the token has been revoked (logout or admin revocation).
-    // `isTokenRevoked` expects the raw token string.
-    const revoked = await isTokenRevoked(token);
+    // `isTokenRevoked` expects the raw token string. Wrap in try/catch so
+    // any DB errors are logged for debugging instead of silently triggering
+    // the outer catch block without details.
+    let revoked = false;
+    try {
+      revoked = await isTokenRevoked(token);
+    } catch (dbErr) {
+      // Treat DB errors as authorization failures for now.
+      res.status(401).json({ message: "Unauthorized: Token missing or invalid", data: null });
+      return;
+    }
     if (revoked) {
       res.status(401).json({ message: "Unauthorized: Token revoked", data: null });
       return;
     }
 
     // Attach the validated user payload to the request for downstream handlers.
-    req.user = decoded as AuthTokenPayload;
+    req.user = decoded;
     next();
   } catch (error) {
     // Any verification error results in a 401 response to the client.

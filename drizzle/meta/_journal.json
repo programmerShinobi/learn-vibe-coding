@@ -15,6 +15,13 @@
       "when": 1780390722716,
       "tag": "0001_yellow_post",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "5",
+      "when": 1780395148730,
+      "tag": "0002_famous_magneto",
+      "breakpoints": true
     }
   ]
 }

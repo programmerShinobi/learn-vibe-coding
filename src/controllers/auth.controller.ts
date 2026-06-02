@@ -64,7 +64,7 @@ export const logout = async (req: Request, res: Response): Promise<void> => {
         // Try to read the token's expiry from the decoded payload so we can
         // store an appropriate `expiresAt` value for cleanup.
         const decoded: any = (await import("../utils/jwt.utils")).verifyToken(token);
-        const exp = decoded && decoded.exp ? new Date(decoded.exp * 1000) : new Date(Date.now() + 24 * 60 * 60 * 1000);
+        const exp = decoded?.exp ? new Date(decoded.exp * 1000) : new Date(Date.now() + 24 * 60 * 60 * 1000);
         await revokeToken(token, exp);
       }
     }

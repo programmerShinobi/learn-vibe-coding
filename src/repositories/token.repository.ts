@@ -1,3 +1,4 @@
+import { eq } from "drizzle-orm";
 import { db } from "../db";
 import { revoked_tokens } from "../schema/token.schema";
 
@@ -8,13 +9,13 @@ import { revoked_tokens } from "../schema/token.schema";
  * @param expiresAt - the token's expiration timestamp (seconds or Date)
  */
 export const revokeToken = async (token: string, expiresAt: Date) => {
-  await db.insert(revoked_tokens).values({ token, expiresAt }).run();
+  await db.insert(revoked_tokens).values({ token, expiresAt });
 };
 
 /**
  * Check whether the provided token has been revoked.
  */
 export const isTokenRevoked = async (token: string) => {
-  const rows = await db.select().from(revoked_tokens).where(revoked_tokens.token.eq(token)).limit(1);
+  const rows = await db.select().from(revoked_tokens).where(eq(revoked_tokens.token, token));
   return !!rows[0];
 };
