@@ -37,7 +37,7 @@ declare global {
   }
 }
 
-export const authenticate = (req: Request, res: Response, next: NextFunction): void => {
+export const authenticate = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     const authHeader = req.headers.authorization;
     if (!authHeader || !authHeader.startsWith("Bearer ")) {
@@ -70,7 +70,7 @@ export const authenticate = (req: Request, res: Response, next: NextFunction): v
     }
     // Check if the token has been revoked (logout or admin revocation).
     // `isTokenRevoked` expects the raw token string.
-    const revoked = await isTokenRevoked(token as string);
+    const revoked = await isTokenRevoked(token);
     if (revoked) {
       res.status(401).json({ message: "Unauthorized: Token revoked", data: null });
       return;
