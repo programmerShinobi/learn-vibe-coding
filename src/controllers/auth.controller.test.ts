@@ -1,3 +1,10 @@
+/*
+  Tests for authentication controllers
+
+  Unit tests that verify controller behavior for registration, login, and
+  logout flows. These tests mock the service layer to exercise controller
+  validation, response codes, and JSON payload shapes.
+*/
 import { beforeEach, describe, expect, it, mock } from "bun:test";
 import type { Request } from "express";
 import { createMockResponse } from "../test-utils/http";
@@ -19,7 +26,7 @@ describe("auth controller", () => {
   });
 
   it("registers a valid user", async () => {
-    const req = { body: { name: "User", email: "user@example.com", password: "secret" } } as Request;
+    const req = { body: { name: "User", email: "user@example.com", password: "secret123" } } as Request;
     const res = createMockResponse();
 
     await register(req, res);
@@ -40,7 +47,7 @@ describe("auth controller", () => {
   });
 
   it("logs in with valid credentials", async () => {
-    const req = { body: { email: "user@example.com", password: "secret" } } as Request;
+    const req = { body: { email: "user@example.com", password: "secret123" } } as Request;
     const res = createMockResponse();
 
     await login(req, res);

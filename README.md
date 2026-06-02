@@ -85,9 +85,10 @@ cp .env.example .env
 Then update `.env` with your credentials:
 
 ```env
-DATABASE_URL="mysql://root:password@localhost:3306/vibe_db"
-JWT_SECRET="your-strong-secret-key"
+DATABASE_URL="mysql://root:mysql@localhost:3306/vibe_db"
+JWT_SECRET="replace-with-a-random-secret-of-at-least-32-chars"
 PORT=3000
+CORS_ORIGIN=
 ```
 
 ### 4. Setup MySQL Database
@@ -97,7 +98,7 @@ PORT=3000
 ```bash
 sudo docker run -d \
   --name mysql-db \
-  -e MYSQL_ROOT_PASSWORD=password \
+  -e MYSQL_ROOT_PASSWORD=mysql \
   -e MYSQL_DATABASE=vibe_db \
   -p 3306:3306 \
   mysql:8.0
@@ -150,8 +151,11 @@ You should see:
 | Script | Description |
 |--------|-------------|
 | `bun run dev` | Start development server with hot reload |
+| `bun run test` | Run the isolated Bun test suite |
+| `bun run typecheck` | Run TypeScript strict checks without emitting files |
 | `bun run db:push` | Push Drizzle schema changes to database |
 | `bun run db:generate` | Generate SQL migration files |
+| `bun run db:migrate` | Apply committed Drizzle migrations |
 
 ---
 

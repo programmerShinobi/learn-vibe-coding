@@ -5,8 +5,10 @@
   "private": true,
   "scripts": {
     "dev": "bun run --watch src/server.ts",
-    "test": "bun test --isolate",
+    "test": "JWT_SECRET=test-secret-with-at-least-32-characters bun test --isolate",
+    "typecheck": "tsc --noEmit",
     "db:generate": "drizzle-kit generate",
+    "db:migrate": "drizzle-kit migrate",
     "db:push": "drizzle-kit push"
   },
   "devDependencies": {

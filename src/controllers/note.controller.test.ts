@@ -1,13 +1,19 @@
+/*
+  Unit tests for note controllers
+
+  These tests mock the service layer to verify controller input validation,
+  authentication usage, and response mapping for CRUD operations.
+*/
 import { beforeEach, describe, expect, it, mock } from "bun:test";
 import type { Request } from "express";
 import { createMockResponse } from "../test-utils/http";
 
 const createNoteMock = mock(async (noteData: any) => ({ id: 1, ...noteData }));
-const getAllNotesMock = mock(async () => [{ id: 1 }]);
-const getNoteByIdMock = mock(async (id: number) => ({ id, title: "Title" }));
+const getAllNotesMock = mock(async (userId: number) => [{ id: 1, userId }]);
+const getNoteByIdMock = mock(async (id: number, userId: number) => ({ id, userId, title: "Title" }));
 const getNotesByUserIdMock = mock(async (userId: number) => [{ id: 1, userId }]);
-const updateNoteMock = mock(async (id: number, noteData: any) => ({ id, ...noteData }));
-const deleteNoteMock = mock(async (_id: number) => undefined);
+const updateNoteMock = mock(async (id: number, userId: number, noteData: any) => ({ id, userId, ...noteData }));
+const deleteNoteMock = mock(async (_id: number, _userId: number) => undefined);
 
 mock.module("../services/note.service", () => ({
   createNote: createNoteMock,
@@ -46,34 +52,44 @@ describe("note controller", () => {
     expect(createRes.statusCode).toBe(400);
 
     const getRes = createMockResponse();
-    await controller.getNoteById({ params: { id: "abc" } } as unknown as Request, getRes);
+    await controller.getNoteById({ params: { id: "abc" }, user: { id: 7 } } as unknown as Request, getRes);
     expect(getRes.statusCode).toBe(400);
   });
 
   it("returns notes by common query paths", async () => {
     const allRes = createMockResponse();
-    await controller.getAllNotes({} as Request, allRes);
-    expect(allRes.body).toEqual({ message: "Notes retrieved successfully", data: [{ id: 1 }] });
+    await controller.getAllNotes({ user: { id: 7 } } as Request, allRes);
+    expect(getAllNotesMock).toHaveBeenCalledWith(7);
+    expect(allRes.body).toEqual({ message: "Notes retrieved successfully", data: [{ id: 1, userId: 7 }] });
 
     const oneRes = createMockResponse();
-    await controller.getNoteById({ params: { id: "1" } } as unknown as Request, oneRes);
-    expect(getNoteByIdMock).toHaveBeenCalledWith(1);
+    await controller.getNoteById({ params: { id: "1" }, user: { id: 7 } } as unknown as Request, oneRes);
+    expect(getNoteByIdMock).toHaveBeenCalledWith(1, 7);
     expect(oneRes.statusCode).toBe(200);
 
     const userRes = createMockResponse();
-    await controller.getNotesByUserId({ params: { userId: "7" } } as unknown as Request, userRes);
+    await controller.getNotesByUserId({ params: { userId: "7" }, user: { id: 7 } } as unknown as Request, userRes);
     expect(getNotesByUserIdMock).toHaveBeenCalledWith(7);
+  });
+
+  it("rejects access to another user's notes", async () => {
+    const res = createMockResponse();
+
+    await controller.getNotesByUserId({ params: { userId: "8" }, user: { id: 7 } } as unknown as Request, res);
+
+    expect(res.statusCode).toBe(403);
+    expect(getNotesByUserIdMock).not.toHaveBeenCalled();
   });
 
   it("updates and deletes notes", async () => {
     const updateRes = createMockResponse();
-    await controller.updateNote({ params: { id: "1" }, body: { title: "New" } } as unknown as Request, updateRes);
-    expect(updateNoteMock).toHaveBeenCalledWith(1, { title: "New", content: undefined });
+    await controller.updateNote({ params: { id: "1" }, body: { title: "New" }, user: { id: 7 } } as unknown as Request, updateRes);
+    expect(updateNoteMock).toHaveBeenCalledWith(1, 7, { title: "New" });
     expect(updateRes.statusCode).toBe(200);
 
     const deleteRes = createMockResponse();
-    await controller.deleteNote({ params: { id: "1" } } as unknown as Request, deleteRes);
-    expect(deleteNoteMock).toHaveBeenCalledWith(1);
+    await controller.deleteNote({ params: { id: "1" }, user: { id: 7 } } as unknown as Request, deleteRes);
+    expect(deleteNoteMock).toHaveBeenCalledWith(1, 7);
     expect(deleteRes.statusCode).toBe(200);
   });
 
@@ -81,7 +97,7 @@ describe("note controller", () => {
     getNoteByIdMock.mockRejectedValueOnce(new Error("Note not found"));
     const res = createMockResponse();
 
-    await controller.getNoteById({ params: { id: "99" } } as unknown as Request, res);
+    await controller.getNoteById({ params: { id: "99" }, user: { id: 7 } } as unknown as Request, res);
 
     expect(res.statusCode).toBe(404);
   });

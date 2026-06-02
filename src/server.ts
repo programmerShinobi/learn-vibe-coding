@@ -1,3 +1,11 @@
+/*
+  Server entrypoint
+
+  Responsible for starting the Express application. It reads configuration
+  (port, NODE_ENV) from environment variables and prints a helpful colored
+  banner on startup. Exported helpers allow programmatic control of server
+  lifecycle for testing (e.g. starting/stopping the server from tests).
+*/
 import "dotenv/config";
 import app from "./app";
 

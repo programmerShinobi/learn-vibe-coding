@@ -1,3 +1,10 @@
+/*
+  Tests for routes index
+
+  Validate that the top-level router mounts sub-routers for authentication and
+  notes under their expected paths. The tests mock sub-routers to avoid
+  importing controller implementations.
+*/
 import { describe, expect, it, mock } from "bun:test";
 import express from "express";
 

@@ -1,3 +1,10 @@
+/*
+  Tests for HTTP test utilities
+
+  Validate that the lightweight `createMockResponse` helper behaves like an
+  Express response for the small subset of methods used in controller tests
+  (`status` and `json`).
+*/
 import { describe, expect, it } from "bun:test";
 import { createMockResponse } from "./http";
 

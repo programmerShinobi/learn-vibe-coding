@@ -1,3 +1,9 @@
+/*
+  Tests for notes schema
+
+  Ensure the Drizzle schema defines the expected column names for the
+  `notes` table so that repositories and migrations rely on a stable shape.
+*/
 import { describe, expect, it } from "bun:test";
 import { notes } from "./note.schema";
 

@@ -1,3 +1,10 @@
+/*
+  Tests for note routes
+
+  Ensure route wiring and middleware usage are correct. These tests inspect
+  the Express router stack to verify handlers and middleware are mounted as
+  intended without starting an HTTP server.
+*/
 import { describe, expect, it, mock } from "bun:test";
 
 const authenticateMock = mock((req, _res, next) => {
@@ -28,25 +35,27 @@ const noteRoutes = (await import("./note.routes")).default;
 
 describe("note routes", () => {
   it("wires protected note CRUD endpoints", async () => {
-    const routes = noteRoutes.stack.map((layer: any) => ({
+    const stack = noteRoutes.stack as any[];
+    const routes = stack.map((layer: any) => ({
       name: layer.name,
       path: layer.route?.path,
       methods: layer.route?.methods,
       handlers: layer.route?.stack.map((routeLayer: any) => routeLayer.handle),
     }));
+    const [, createRoute, allRoute, userRoute, oneRoute, updateRoute, deleteRoute] = routes as [any, any, any, any, any, any, any];
 
-    expect(noteRoutes.stack[0].handle).toBe(authenticateMock);
-    expect(routes[1]).toMatchObject({ path: "/", methods: { post: true } });
-    expect(routes[1].handlers).toContain(createNoteMock);
-    expect(routes[2]).toMatchObject({ path: "/", methods: { get: true } });
-    expect(routes[2].handlers).toContain(getAllNotesMock);
-    expect(routes[3]).toMatchObject({ path: "/user/:userId", methods: { get: true } });
-    expect(routes[3].handlers).toContain(getNotesByUserIdMock);
-    expect(routes[4]).toMatchObject({ path: "/:id", methods: { get: true } });
-    expect(routes[4].handlers).toContain(getNoteByIdMock);
-    expect(routes[5]).toMatchObject({ path: "/:id", methods: { put: true } });
-    expect(routes[5].handlers).toContain(updateNoteMock);
-    expect(routes[6]).toMatchObject({ path: "/:id", methods: { delete: true } });
-    expect(routes[6].handlers).toContain(deleteNoteMock);
+    expect(stack[0].handle).toBe(authenticateMock);
+    expect(createRoute).toMatchObject({ path: "/", methods: { post: true } });
+    expect(createRoute.handlers).toContain(createNoteMock);
+    expect(allRoute).toMatchObject({ path: "/", methods: { get: true } });
+    expect(allRoute.handlers).toContain(getAllNotesMock);
+    expect(userRoute).toMatchObject({ path: "/user/:userId", methods: { get: true } });
+    expect(userRoute.handlers).toContain(getNotesByUserIdMock);
+    expect(oneRoute).toMatchObject({ path: "/:id", methods: { get: true } });
+    expect(oneRoute.handlers).toContain(getNoteByIdMock);
+    expect(updateRoute).toMatchObject({ path: "/:id", methods: { put: true } });
+    expect(updateRoute.handlers).toContain(updateNoteMock);
+    expect(deleteRoute).toMatchObject({ path: "/:id", methods: { delete: true } });
+    expect(deleteRoute.handlers).toContain(deleteNoteMock);
   });
 });

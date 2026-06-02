@@ -1,8 +1,23 @@
+/*
+  Tests for note repository
+
+  These unit tests mock the `db` object to verify repository functions
+  construct expected queries and return rows as intended.
+*/
 import { beforeEach, describe, expect, it, mock } from "bun:test";
 
-const limitMock = mock(async (_limit: number) => [{ id: 1, title: "Title" }]);
+const noteRow = {
+  id: 1,
+  userId: 7,
+  title: "Title",
+  content: "Body",
+  createdAt: new Date("2026-06-02T00:00:00.000Z"),
+  updatedAt: new Date("2026-06-02T00:00:00.000Z"),
+};
+
+const limitMock = mock(async (_limit: number) => [noteRow]);
 const whereAfterSelectMock = mock((_condition: unknown) => ({ limit: limitMock }));
-const whereDirectMock = mock(async (_condition: unknown) => [{ id: 1, userId: 7 }]);
+const whereDirectMock = mock(async (_condition: unknown) => [noteRow]);
 const fromMock = mock((_table: unknown) => ({ where: whereAfterSelectMock }));
 const selectMock = mock(() => ({ from: fromMock }));
 const valuesMock = mock(async (_data: unknown) => [{ insertId: 1 }]);
@@ -33,25 +48,23 @@ describe("note repository", () => {
     setMock.mockClear();
     deleteMock.mockClear();
     fromMock.mockImplementation((_table: unknown) => ({ where: whereAfterSelectMock }));
-    limitMock.mockResolvedValue([{ id: 1, title: "Title" }]);
+    limitMock.mockResolvedValue([noteRow]);
   });
 
   it("creates and fetches notes", async () => {
-    await expect(repo.createNote({ userId: 7, title: "Title", content: "Body" })).resolves.toEqual({ id: 1, title: "Title" });
-    await expect(repo.getNoteById(1)).resolves.toEqual({ id: 1, title: "Title" });
+    await expect(repo.createNote({ userId: 7, title: "Title", content: "Body" })).resolves.toEqual(noteRow);
+    await expect(repo.getNoteById(1, 7)).resolves.toEqual(noteRow);
   });
 
-  it("lists all notes and notes by user id", async () => {
-    fromMock.mockReturnValueOnce([{ id: 1 }]);
-    await expect(repo.getAllNotes()).resolves.toEqual([{ id: 1 }]);
-
-    fromMock.mockReturnValueOnce({ where: whereDirectMock });
-    await expect(repo.getNotesByUserId(7)).resolves.toEqual([{ id: 1, userId: 7 }]);
+  it("lists notes by user id", async () => {
+    fromMock.mockReturnValueOnce({ where: whereDirectMock } as any);
+    await expect(repo.getNotesByUserId(7)).resolves.toEqual([noteRow]);
   });
 
   it("updates and deletes a note", async () => {
-    await expect(repo.updateNote(1, { title: "New" })).resolves.toEqual({ id: 1, title: "Title" });
-    await repo.deleteNote(1);
+    fromMock.mockImplementation((_table: unknown) => ({ where: whereAfterSelectMock }));
+    await expect(repo.updateNote(1, 7, { title: "New" })).resolves.toEqual(noteRow);
+    await repo.deleteNote(1, 7);
 
     expect(updateMock).toHaveBeenCalled();
     expect(setMock).toHaveBeenCalled();
