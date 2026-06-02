@@ -11,6 +11,13 @@ mock.module("./app", () => ({
   },
 }));
 
+/*
+  Tests for the server entrypoint
+
+  Verifies that the startup banner renders without throwing. These tests
+  intentionally avoid starting the real HTTP server to keep unit tests fast
+  and deterministic.
+*/
 const { printBanner, startServer } = await import("./server");
 
 describe("server", () => {

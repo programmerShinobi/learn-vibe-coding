@@ -1,11 +1,26 @@
+/*
+  Express application setup
+
+  This file wires middleware, route mounting, and common endpoints. Keep the
+  middleware order intentional:
+  1. CORS - configure allowed origins early to avoid preflight issues.
+  2. Body parsers - `urlencoded` and `json` so controllers receive parsed data.
+  3. Route mounting - mount API routers under `/api/v1`.
+  4. Health check and fallback handlers.
+
+  Controllers assume parsed request bodies and rely on the `authenticate`
+  middleware (used within routers) to populate `req.user` for authenticated
+  endpoints.
+*/
 import express from "express";
 import cors from "cors";
 import routes from "./routes";
+import { corsConfig } from "./config/cors.config";
 
 const app = express();
 
-// Enable CORS for all origins (configure for production as needed)
-app.use(cors());
+// Enable CORS. Use CORS_ORIGIN to restrict production origins.
+app.use(cors(corsConfig));
 
 // Parse application/x-www-form-urlencoded (form-data) request bodies
 app.use(express.urlencoded({ extended: true }));

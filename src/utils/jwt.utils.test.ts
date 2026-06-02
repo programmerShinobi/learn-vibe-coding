@@ -1,3 +1,9 @@
+/*
+  Tests for JWT utilities
+
+  Ensure tokens can be generated and verified. These tests assume a valid
+  `JWT_SECRET` is available in the environment (see `src/config/jwt.config.ts`).
+*/
 import { describe, expect, it } from "bun:test";
 import { generateToken, verifyToken } from "./jwt.utils";
 

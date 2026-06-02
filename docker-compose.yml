@@ -9,7 +9,7 @@ services:
     restart: always
     environment:
       # Set the root password (matches our default .env configuration)
-      MYSQL_ROOT_PASSWORD: password
+      MYSQL_ROOT_PASSWORD: mysql
       # Pre-create the database 'vibe_db' on startup
       MYSQL_DATABASE: vibe_db
     ports:

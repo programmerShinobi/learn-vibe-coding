@@ -1,3 +1,9 @@
+/*
+  Tests for users schema
+
+  Validate that the `users` Drizzle schema exposes the expected column names
+  used by repositories and services.
+*/
 import { describe, expect, it } from "bun:test";
 import { users } from "./auth.schema";
 

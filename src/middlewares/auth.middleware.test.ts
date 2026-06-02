@@ -1,3 +1,10 @@
+/*
+  Tests for authentication middleware
+
+  Verify that the `authenticate` middleware correctly handles valid Bearer
+  tokens, attaches decoded payloads to `req.user`, and rejects requests when
+  the token is missing or malformed.
+*/
 import { beforeEach, describe, expect, it, mock } from "bun:test";
 import type { NextFunction, Request } from "express";
 import { createMockResponse } from "../test-utils/http";

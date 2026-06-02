@@ -1,3 +1,9 @@
+/*
+  Tests for authentication routes
+
+  Ensure the correct HTTP verbs and middleware are wired for the auth route
+  group. Tests inspect the router stack rather than performing HTTP requests.
+*/
 import { describe, expect, it, mock } from "bun:test";
 
 const registerMock = mock((_req, res) => res.status(201).json({ route: "register" }));
@@ -19,17 +25,18 @@ const authRoutes = (await import("./auth.routes")).default;
 
 describe("auth routes", () => {
   it("wires auth endpoints to their handlers", async () => {
-    const routes = authRoutes.stack.map((layer: any) => ({
+    const routes = (authRoutes.stack as any[]).map((layer: any) => ({
       path: layer.route?.path,
       methods: layer.route?.methods,
       handlers: layer.route?.stack.map((routeLayer: any) => routeLayer.handle),
     }));
+    const [registerRoute, loginRoute, logoutRoute] = routes as [any, any, any];
 
-    expect(routes[0]).toMatchObject({ path: "/register", methods: { post: true } });
-    expect(routes[0].handlers).toContain(registerMock);
-    expect(routes[1]).toMatchObject({ path: "/login", methods: { post: true } });
-    expect(routes[1].handlers).toContain(loginMock);
-    expect(routes[2]).toMatchObject({ path: "/logout", methods: { post: true } });
-    expect(routes[2].handlers).toEqual([authenticateMock, logoutMock]);
+    expect(registerRoute).toMatchObject({ path: "/register", methods: { post: true } });
+    expect(registerRoute.handlers).toContain(registerMock);
+    expect(loginRoute).toMatchObject({ path: "/login", methods: { post: true } });
+    expect(loginRoute.handlers).toContain(loginMock);
+    expect(logoutRoute).toMatchObject({ path: "/logout", methods: { post: true } });
+    expect(logoutRoute.handlers).toEqual([authenticateMock, logoutMock]);
   });
 });

@@ -1,5 +1,19 @@
+/*
+  Authentication controllers
+
+  This module implements HTTP handlers for authentication-related endpoints.
+  Controllers in this project follow a consistent pattern:
+  - Validate input using functions from `src/utils/request-validation`.
+  - Call service-layer functions to execute business logic.
+  - Map thrown errors to appropriate HTTP status codes and JSON responses.
+
+  Responses are JSON objects with the shape: `{ message: string, data: any }`.
+  Controllers avoid direct DB access and delegate persistence to repositories
+  via service functions.
+*/
 import type { Request, Response } from "express";
 import { registerUser, loginUser } from "../services/auth.service";
+import { validateLoginInput, validateRegisterInput } from "../utils/request-validation";
 
 /**
  * POST /api/v1/auth/register
@@ -7,14 +21,7 @@ import { registerUser, loginUser } from "../services/auth.service";
  */
 export const register = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { name, email, password } = req.body;
-
-    // Validate required fields
-    if (!name || !email || !password) {
-      res.status(400).json({ message: "Name, email, and password are required", data: null });
-      return;
-    }
-
+    const { name, email, password } = validateRegisterInput(req.body);
     const user = await registerUser({ name, email, password });
 
     res.status(201).json({ message: "User created successfully", data: user });
@@ -31,14 +38,7 @@ export const register = async (req: Request, res: Response): Promise<void> => {
  */
 export const login = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { email, password } = req.body;
-
-    // Validate required fields
-    if (!email || !password) {
-      res.status(400).json({ message: "Email and password are required", data: null });
-      return;
-    }
-
+    const { email, password } = validateLoginInput(req.body);
     const result = await loginUser({ email, password });
 
     res.status(200).json({ message: "User logged in successfully", data: result });
