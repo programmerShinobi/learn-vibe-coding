@@ -18,6 +18,6 @@ export default defineConfig({
   
   // Database connection credentials, read from environment variables (.env)
   dbCredentials: {
-    url: process.env.DATABASE_URL || "mysql://root:password@localhost:3306/vibe_db",
+    url: process.env.DATABASE_URL || "mysql://root:mysql@localhost:3306/vibe_db",
   },
 });
