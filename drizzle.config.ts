@@ -1,22 +1,12 @@
 import { defineConfig } from "drizzle-kit";
+import { config } from "dotenv";
 
-/**
- * Drizzle Kit Configuration File
- * 
- * This file is used by drizzle-kit CLI for managing migrations, generating SQL,
- * and pushing schema changes to your database.
- */
+config();
+
 export default defineConfig({
-  // The database dialect we are connecting to
   dialect: "mysql",
-  
-  // Path to our TypeScript database schema file(s)
-  schema: "./src/db/schema.ts",
-  
-  // Output directory where migrations and SQL snapshots will be stored
+  schema: ["./src/schema/auth.schema.ts", "./src/schema/note.schema.ts"],
   out: "./drizzle",
-  
-  // Database connection credentials, read from environment variables (.env)
   dbCredentials: {
     url: process.env.DATABASE_URL || "mysql://root:mysql@localhost:3306/vibe_db",
   },
