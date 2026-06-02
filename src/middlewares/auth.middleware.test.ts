@@ -10,9 +10,14 @@ import type { NextFunction, Request } from "express";
 import { createMockResponse } from "../test-utils/http";
 
 const verifyTokenMock = mock(() => ({ id: 1, email: "user@example.com" }));
+const isTokenRevokedMock = mock(() => false);
 
 mock.module("../utils/jwt.utils", () => ({
   verifyToken: verifyTokenMock,
+}));
+
+mock.module("../repositories/token.repository", () => ({
+  isTokenRevoked: isTokenRevokedMock,
 }));
 
 const { authenticate } = await import("./auth.middleware");
@@ -23,24 +28,22 @@ describe("authenticate", () => {
     verifyTokenMock.mockReturnValue({ id: 1, email: "user@example.com" });
   });
 
-  it("attaches decoded user and calls next for a bearer token", () => {
+  it("attaches decoded user and calls next for a bearer token", async () => {
     const req = { headers: { authorization: "Bearer token" } } as Request;
     const res = createMockResponse();
     const next = mock(() => undefined) as NextFunction;
-
-    authenticate(req, res, next);
+    await authenticate(req, res, next);
 
     expect(verifyTokenMock).toHaveBeenCalledWith("token");
     expect(req.user).toEqual({ id: 1, email: "user@example.com" });
     expect(next).toHaveBeenCalled();
   });
 
-  it("rejects missing token", () => {
+  it("rejects missing token", async () => {
     const req = { headers: {} } as Request;
     const res = createMockResponse();
     const next = mock(() => undefined) as NextFunction;
-
-    authenticate(req, res, next);
+    await authenticate(req, res, next);
 
     expect(res.statusCode).toBe(401);
     expect(res.body).toEqual({ message: "Unauthorized: Token missing or invalid", data: null });

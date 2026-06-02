@@ -19,6 +19,7 @@ import { dbConfig } from "../config/db.config";
 
 import * as authSchema from "../schema/auth.schema";
 import * as noteSchema from "../schema/note.schema";
+import * as tokenSchema from "../schema/token.schema";
 
 // Create a connection pool so the application can efficiently reuse MySQL connections.
 const poolConnection = mysql.createPool({
@@ -26,4 +27,5 @@ const poolConnection = mysql.createPool({
 });
 
 // Compose schemas and initialize Drizzle ORM.
-export const db = drizzle(poolConnection, { schema: { ...authSchema, ...noteSchema }, mode: "default" });
+// Include token schema for revoked token storage
+export const db = drizzle(poolConnection, { schema: { ...authSchema, ...noteSchema, ...tokenSchema }, mode: "default" });

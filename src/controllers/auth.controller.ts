@@ -14,6 +14,7 @@
 import type { Request, Response } from "express";
 import { registerUser, loginUser } from "../services/auth.service";
 import { validateLoginInput, validateRegisterInput } from "../utils/request-validation";
+import { revokeToken } from "../repositories/token.repository";
 
 /**
  * POST /api/v1/auth/register
@@ -53,6 +54,25 @@ export const login = async (req: Request, res: Response): Promise<void> => {
  * Since JWT is stateless, we simply respond with a success message.
  * The client is responsible for discarding the token.
  */
-export const logout = async (_req: Request, res: Response): Promise<void> => {
-  res.status(200).json({ message: "User logged out successfully", data: null });
+export const logout = async (req: Request, res: Response): Promise<void> => {
+  try {
+    // If the client provided an Authorization header, revoke that token.
+    const authHeader = req.headers?.authorization;
+    if (authHeader && authHeader.startsWith("Bearer ")) {
+      const token = authHeader.split(" ")[1];
+      if (token) {
+        // Try to read the token's expiry from the decoded payload so we can
+        // store an appropriate `expiresAt` value for cleanup.
+        const decoded: any = (await import("../utils/jwt.utils")).verifyToken(token);
+        const exp = decoded?.exp ? new Date(decoded.exp * 1000) : new Date(Date.now() + 24 * 60 * 60 * 1000);
+        await revokeToken(token, exp);
+      }
+    }
+
+    // In all cases respond with success. Clients should also remove tokens
+    // from local storage/cookies to fully log out on the client side.
+    res.status(200).json({ message: "User logged out successfully", data: null });
+  } catch (error: any) {
+    res.status(500).json({ message: error.message || "Failed to logout", data: null });
+  }
 };
