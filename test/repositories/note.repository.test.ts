@@ -28,7 +28,7 @@ const updateMock = mock((_table: unknown) => ({ set: setMock }));
 const deleteWhereMock = mock(async (_condition: unknown) => undefined);
 const deleteMock = mock((_table: unknown) => ({ where: deleteWhereMock }));
 
-mock.module("../db", () => ({
+mock.module("../../src/db", () => ({
   db: {
     select: selectMock,
     insert: insertMock,
@@ -37,7 +37,7 @@ mock.module("../db", () => ({
   },
 }));
 
-const repo = await import("./note.repository");
+const repo = await import("../../src/repositories/note.repository");
 
 describe("note repository", () => {
   beforeEach(() => {

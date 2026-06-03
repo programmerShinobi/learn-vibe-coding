@@ -12,12 +12,12 @@ import { createMockResponse } from "../test-utils/http";
 const registerUserMock = mock(async (_userData: any) => ({ id: 1, name: "User", email: "user@example.com" }));
 const loginUserMock = mock(async (_credentials: any) => ({ id: 1, email: "user@example.com", token: "token" }));
 
-mock.module("../services/auth.service", () => ({
+mock.module("../../src/services/auth.service", () => ({
   registerUser: registerUserMock,
   loginUser: loginUserMock,
 }));
 
-const { register, login, logout } = await import("./auth.controller");
+const { register, login, logout } = await import("../../src/controllers/auth.controller");
 
 describe("auth controller", () => {
   beforeEach(() => {

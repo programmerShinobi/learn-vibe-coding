@@ -19,7 +19,7 @@ mock.module("drizzle-orm/mysql2", () => ({
   drizzle: drizzleMock,
 }));
 
-const { db } = await import("./index");
+const { db } = await import("../../src/db/index");
 
 describe("db", () => {
   it("creates a drizzle database using a mysql pool", () => {

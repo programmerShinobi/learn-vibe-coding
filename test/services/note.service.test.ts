@@ -22,7 +22,7 @@ const getNotesByUserIdMock = mock(async (_userId: number): Promise<any> => [note
 const updateNoteMock = mock(async (id: number, userId: number, noteData: any): Promise<any> => ({ ...noteRow, id, userId, ...noteData }));
 const deleteNoteMock = mock(async (_id: number, _userId: number) => undefined);
 
-mock.module("../repositories/note.repository", () => ({
+mock.module("../../src/repositories/note.repository", () => ({
   createNote: createNoteMock,
   getNoteById: getNoteByIdMock,
   getNotesByUserId: getNotesByUserIdMock,
@@ -30,7 +30,7 @@ mock.module("../repositories/note.repository", () => ({
   deleteNote: deleteNoteMock,
 }));
 
-const noteService = await import("./note.service");
+const noteService = await import("../../src/services/note.service");
 
 describe("note service", () => {
   beforeEach(() => {

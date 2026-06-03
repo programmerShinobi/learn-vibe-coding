@@ -5,7 +5,7 @@
   `notes` table so that repositories and migrations rely on a stable shape.
 */
 import { describe, expect, it } from "bun:test";
-import { notes } from "./note.schema";
+import { notes } from "../../src/schema/note.schema";
 
 describe("notes schema", () => {
   it("defines the notes table columns", () => {

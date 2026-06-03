@@ -6,7 +6,7 @@
   configuration shape.
 */
 import { describe, expect, it } from "bun:test";
-import { dbConfig } from "./db.config";
+import { dbConfig } from "../../src/config/db.config";
 
 describe("dbConfig", () => {
   it("provides a database url", () => {

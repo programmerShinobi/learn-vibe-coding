@@ -5,7 +5,7 @@
   `JWT_SECRET` is available in the environment (see `src/config/jwt.config.ts`).
 */
 import { describe, expect, it } from "bun:test";
-import { generateToken, verifyToken } from "./jwt.utils";
+import { generateToken, verifyToken } from "../../src/utils/jwt.utils";
 
 describe("jwt utils", () => {
   it("generates and verifies a token payload", () => {
