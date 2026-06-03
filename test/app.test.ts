@@ -5,7 +5,7 @@
   HTTP server by introspecting the Express router stack.
 */
 import { describe, expect, it } from "bun:test";
-import app from "./app";
+import app from "../src/app";
 import { createMockResponse } from "./test-utils/http";
 
 describe("app", () => {

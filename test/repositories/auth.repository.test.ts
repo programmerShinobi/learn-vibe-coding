@@ -22,14 +22,14 @@ const selectMock = mock(() => ({ from: fromMock }));
 const valuesMock = mock(async (_data: unknown) => [{ insertId: 1 }]);
 const insertMock = mock((_table: unknown) => ({ values: valuesMock }));
 
-mock.module("../db", () => ({
+mock.module("../../src/db", () => ({
   db: {
     select: selectMock,
     insert: insertMock,
   },
 }));
 
-const repo = await import("./auth.repository");
+const repo = await import("../../src/repositories/auth.repository");
 
 describe("auth repository", () => {
   beforeEach(() => {

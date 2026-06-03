@@ -8,15 +8,15 @@
 import { describe, expect, it, mock } from "bun:test";
 import express from "express";
 
-mock.module("./auth.routes", () => ({
+mock.module("../../src/routes/auth.routes", () => ({
   default: express.Router().get("/ping", (_req, res) => res.json({ group: "auth" })),
 }));
 
-mock.module("./note.routes", () => ({
+mock.module("../../src/routes/note.routes", () => ({
   default: express.Router().get("/ping", (_req, res) => res.json({ group: "notes" })),
 }));
 
-const routes = (await import("./index")).default;
+const routes = (await import("../../src/routes/index")).default;
 
 describe("routes index", () => {
   it("mounts auth and note route groups", async () => {

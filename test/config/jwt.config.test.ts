@@ -6,7 +6,7 @@
   environment in which the test runner runs.
 */
 import { describe, expect, it } from "bun:test";
-import { jwtConfig } from "./jwt.config";
+import { jwtConfig } from "../../src/config/jwt.config";
 
 describe("jwtConfig", () => {
   it("provides a secret and expiration", () => {

@@ -18,11 +18,11 @@ const getNotesByUserIdMock = mock((_req, res) => res.json({ route: "user" }));
 const updateNoteMock = mock((_req, res) => res.json({ route: "update" }));
 const deleteNoteMock = mock((_req, res) => res.json({ route: "delete" }));
 
-mock.module("../middlewares/auth.middleware", () => ({
+mock.module("../../src/middlewares/auth.middleware", () => ({
   authenticate: authenticateMock,
 }));
 
-mock.module("../controllers/note.controller", () => ({
+mock.module("../../src/controllers/note.controller", () => ({
   createNote: createNoteMock,
   getAllNotes: getAllNotesMock,
   getNoteById: getNoteByIdMock,
@@ -31,7 +31,7 @@ mock.module("../controllers/note.controller", () => ({
   deleteNote: deleteNoteMock,
 }));
 
-const noteRoutes = (await import("./note.routes")).default;
+const noteRoutes = (await import("../../src/routes/note.routes")).default;
 
 describe("note routes", () => {
   it("wires protected note CRUD endpoints", async () => {

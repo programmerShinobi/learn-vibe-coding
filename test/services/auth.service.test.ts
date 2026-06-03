@@ -20,16 +20,16 @@ const findUserByEmailMock = mock(async (_email: string): Promise<any> => undefin
 const createUserMock = mock(async (userData: any): Promise<any> => ({ ...userRow, ...userData }));
 const generateTokenMock = mock((_payload: object) => "token");
 
-mock.module("../repositories/auth.repository", () => ({
+mock.module("../../src/repositories/auth.repository", () => ({
   findUserByEmail: findUserByEmailMock,
   createUser: createUserMock,
 }));
 
-mock.module("../utils/jwt.utils", () => ({
+mock.module("../../src/utils/jwt.utils", () => ({
   generateToken: generateTokenMock,
 }));
 
-const { registerUser, loginUser } = await import("./auth.service");
+const { registerUser, loginUser } = await import("../../src/services/auth.service");
 
 describe("auth service", () => {
   beforeEach(() => {

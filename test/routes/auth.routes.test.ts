@@ -11,17 +11,17 @@ const loginMock = mock((_req, res) => res.status(200).json({ route: "login" }));
 const logoutMock = mock((_req, res) => res.status(200).json({ route: "logout" }));
 const authenticateMock = mock((_req, _res, next) => next());
 
-mock.module("../controllers/auth.controller", () => ({
+mock.module("../../src/controllers/auth.controller", () => ({
   register: registerMock,
   login: loginMock,
   logout: logoutMock,
 }));
 
-mock.module("../middlewares/auth.middleware", () => ({
+mock.module("../../src/middlewares/auth.middleware", () => ({
   authenticate: authenticateMock,
 }));
 
-const authRoutes = (await import("./auth.routes")).default;
+const authRoutes = (await import("../../src/routes/auth.routes")).default;
 
 describe("auth routes", () => {
   it("wires auth endpoints to their handlers", async () => {

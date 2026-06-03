@@ -5,7 +5,7 @@
   used by repositories and services.
 */
 import { describe, expect, it } from "bun:test";
-import { users } from "./auth.schema";
+import { users } from "../../src/schema/auth.schema";
 
 describe("users schema", () => {
   it("defines the users table columns", () => {

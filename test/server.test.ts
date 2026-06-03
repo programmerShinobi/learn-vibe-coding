@@ -5,7 +5,7 @@ const listenMock = mock((_port: string | number, callback: () => void) => {
   return { close: mock(() => undefined) };
 });
 
-mock.module("./app", () => ({
+mock.module("../src/app", () => ({
   default: {
     listen: listenMock,
   },
@@ -18,7 +18,7 @@ mock.module("./app", () => ({
   intentionally avoid starting the real HTTP server to keep unit tests fast
   and deterministic.
 */
-const { printBanner, startServer } = await import("./server");
+const { printBanner, startServer } = await import("../src/server");
 
 describe("server", () => {
   it("prints a startup banner with the selected port", () => {

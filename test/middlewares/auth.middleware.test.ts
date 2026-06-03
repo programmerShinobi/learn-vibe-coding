@@ -12,15 +12,15 @@ import { createMockResponse } from "../test-utils/http";
 const verifyTokenMock = mock(() => ({ id: 1, email: "user@example.com" }));
 const isTokenRevokedMock = mock(() => false);
 
-mock.module("../utils/jwt.utils", () => ({
+mock.module("../../src/utils/jwt.utils", () => ({
   verifyToken: verifyTokenMock,
 }));
 
-mock.module("../repositories/token.repository", () => ({
+mock.module("../../src/repositories/token.repository", () => ({
   isTokenRevoked: isTokenRevokedMock,
 }));
 
-const { authenticate } = await import("./auth.middleware");
+const { authenticate } = await import("../../src/middlewares/auth.middleware");
 
 describe("authenticate", () => {
   beforeEach(() => {

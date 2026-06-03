@@ -1,102 +1,233 @@
 # Notes API
 
-A RESTful API for managing notes with user authentication, built with **Bun**, **Express.js**, **Drizzle ORM**, and **MySQL**.
+A server application for managing notes with user authentication. It is built with modern backend technologies and follows backend development best practices.
+
+**In simple terms:** This application works like a digital notepad that can be accessed from anywhere. Each user must log in first, then they can create, read, update, and delete their own notes.
+
+---
+
+## Key Features
+
+- **User Registration & Login** — Authentication system with encrypted passwords
+- **Notes CRUD** — Create, read, update, and delete notes
+- **Security** — JWT-based protection for user data
+- **Database** — Secure data storage using MySQL
+- **Unit Tests** — 38 automated tests to ensure code quality
+- **Hot Reload** — Code changes are reflected instantly without restarting the server
 
 ---
 
 ## Tech Stack
 
-| Layer | Technology |
-|-------|-----------|
-| Runtime | [Bun](https://bun.sh/) |
-| Framework | [Express.js](https://expressjs.com/) v5 |
-| ORM | [Drizzle ORM](https://orm.drizzle.team/) |
-| Database | MySQL 8+ |
-| Auth | JWT (jsonwebtoken) |
-| Password | bcryptjs |
+| Layer | Technology | Simple Explanation |
+|-------|-----------|-------------------|
+| **Runtime** | [Bun](https://bun.sh/) | A JavaScript/TypeScript runtime. Faster than Node.js |
+| **Web Framework** | [Express.js](https://expressjs.com/) v5 | A library for building web APIs easily |
+| **ORM** | [Drizzle ORM](https://orm.drizzle.team/) | A tool for interacting with the database without writing raw SQL |
+| **Database** | MySQL 8+ | A reliable and widely used database system |
+| **Authentication** | JWT | A token-based system to verify user identity |
+| **Password Security** | bcryptjs | A library for hashing passwords securely |
 
 ---
 
 ## Project Structure
 
+```text
+📦 belajar-vibe-coding/
+├── 📁 src/                    # Main application code
+│   ├── 📄 app.ts              # Express setup (middleware, route mounting)
+│   ├── 📄 server.ts           # Entrypoint - starts the server
+│   │
+│   ├── 📁 config/             # Application configuration
+│   │   ├── 📄 db.config.ts    # Database connection configuration
+│   │   └── 📄 jwt.config.ts   # JWT configuration (secret, expiration)
+│   │
+│   ├── 📁 db/                 # Database
+│   │   └── 📄 index.ts        # Drizzle ORM initialization & MySQL connection
+│   │
+│   ├── 📁 schema/             # Database table definitions
+│   │   ├── 📄 auth.schema.ts  # 'users' table structure
+│   │   └── 📄 note.schema.ts  # 'notes' table structure
+│   │
+│   ├── 📁 repositories/       # Direct database access
+│   │   ├── 📄 auth.repository.ts  # Queries for users table
+│   │   ├── 📄 note.repository.ts  # Queries for notes table
+│   │   └── 📄 token.repository.ts # Queries for revoked tokens
+│   │
+│   ├── 📁 services/           # Business logic
+│   │   ├── 📄 auth.service.ts # Registration, login, password hashing
+│   │   └── 📄 note.service.ts # Notes CRUD logic
+│   │
+│   ├── 📁 controllers/        # Handle HTTP requests/responses
+│   │   ├── 📄 auth.controller.ts  # Registration & login endpoints
+│   │   └── 📄 note.controller.ts  # Notes CRUD endpoints
+│   │
+│   ├── 📁 middlewares/        # Functions executed before controllers
+│   │   └── 📄 auth.middleware.ts  # JWT token verification
+│   │
+│   ├── 📁 routes/             # Endpoint definitions
+│   │   ├── 📄 auth.routes.ts  # Routes for /api/v1/auth
+│   │   ├── 📄 note.routes.ts  # Routes for /api/v1/notes
+│   │   └── 📄 index.ts        # Combines all routes
+│   │
+│   └── 📁 utils/              # Helper functions
+│       ├── 📄 jwt.utils.ts    # Generate & verify JWT
+│       └── 📄 request-validation.ts
+│
+├── 📁 test/                   # All unit tests (38 tests)
+│   ├── 📁 config/
+│   ├── 📁 controllers/
+│   ├── 📁 services/
+│   ├── 📁 middlewares/
+│   ├── 📁 repositories/
+│   ├── 📁 routes/
+│   ├── 📁 schema/
+│   ├── 📁 utils/
+│   └── 📁 test-utils/
+│
+├── 📁 drizzle/                # Database migrations
+│   ├── 📄 *.sql               # Migration files
+│   └── 📁 meta/               # Migration metadata
+│
+├── 📄 package.json            # Dependencies & scripts
+├── 📄 tsconfig.json           # TypeScript configuration
+├── 📄 drizzle.config.ts       # Drizzle ORM configuration
+├── 📄 docker-compose.yml      # Docker setup for MySQL
+├── 📄 .env.example            # Example environment file
+└── 📄 README.md               # This file
 ```
-src/
-├── app.ts                  # Express app setup (middleware, routes)
-├── server.ts               # Server entry point with startup banner
-├── config/
-│   ├── db.config.ts        # Database connection config
-│   └── jwt.config.ts       # JWT secret and expiration config
-├── db/
-│   └── index.ts            # Drizzle ORM client initialization
-├── schema/
-│   ├── auth.schema.ts      # Drizzle schema for `users` table
-│   └── note.schema.ts      # Drizzle schema for `notes` table
-├── repositories/
-│   ├── auth.repository.ts  # Raw DB queries for users
-│   └── note.repository.ts  # Raw DB queries for notes
-├── services/
-│   ├── auth.service.ts     # Auth business logic (hashing, JWT)
-│   └── note.service.ts     # Note business logic
-├── controllers/
-│   ├── auth.controller.ts  # Auth request/response handlers
-│   └── note.controller.ts  # Note request/response handlers
-├── middlewares/
-│   └── auth.middleware.ts  # JWT verification middleware
-├── routes/
-│   ├── auth.routes.ts      # Auth route definitions
-│   ├── note.routes.ts      # Note route definitions
-│   └── index.ts            # Route combiner
-└── utils/
-    └── jwt.utils.ts        # JWT sign/verify utility functions
+
+---
+
+## Application Data Flow
+
+```text
+User Request
+    ↓
+┌─────────────────────────────────────┐
+│ Router (routes/)                    │ → Determines which endpoint is accessed
+└─────────────────────────────────────┘
+    ↓
+┌─────────────────────────────────────┐
+│ Middleware (middlewares/)           │ → Verifies JWT token
+└─────────────────────────────────────┘
+    ↓
+┌─────────────────────────────────────┐
+│ Controller (controllers/)           │ → Validates input, formats response
+└─────────────────────────────────────┘
+    ↓
+┌─────────────────────────────────────┐
+│ Service (services/)                 │ → Business logic, password encryption, etc.
+└─────────────────────────────────────┘
+    ↓
+┌─────────────────────────────────────┐
+│ Repository (repositories/)          │ → Sends queries to the database
+└─────────────────────────────────────┘
+    ↓
+┌─────────────────────────────────────┐
+│ Database (MySQL)                    │ → Stores/retrieves data
+└─────────────────────────────────────┘
+    ↓
+JSON Response → User
 ```
+
+---
+
+## Layer Responsibilities
+
+| Layer | Function | Analogy |
+|-------|----------|---------|
+| **Routes** | Defines URL endpoints | Front door |
+| **Middleware** | Verifies requests before access | Security guard |
+| **Controller** | Receives and validates input | Receptionist |
+| **Service** | Processes business logic | Chef preparing the dish |
+| **Repository** | Executes database queries | Warehouse clerk |
+| **Database** | Stores and retrieves data | Storage warehouse |
 
 ---
 
 ## Prerequisites
 
-- [Bun](https://bun.sh/) >= 1.0
-- MySQL 8+ running locally or via Docker
+Before running this application, make sure you have installed:
+
+1. **[Bun](https://bun.sh/)** >= 1.0  
+   Bun is a modern JavaScript runtime and a faster alternative to Node.js.  
+   Installation instructions are available at `https://bun.sh`.
+
+2. **MySQL** 8+  
+   This is used to store application data. You can install it locally or use Docker.
+
+**Check your installation:**
+
+```bash
+bun --version
+mysql --version
+```
 
 ---
 
-## Getting Started
+## How to Run the Application
 
-### 1. Clone the Repository
+### Step 1: Clone the Repository
 
 ```bash
 git clone https://github.com/programmerShinobi/learn-vibe-coding.git
 cd learn-vibe-coding
 ```
 
-### 2. Install Dependencies
+**What does this do?**  
+Cloning downloads the project code from the internet to your computer.
+
+---
+
+### Step 2: Install Dependencies
 
 ```bash
 bun install
 ```
 
-### 3. Setup Environment Variables
+**What does this do?**  
+This downloads all libraries required by the application, as listed in `package.json`.
 
-Copy and configure the `.env` file:
+---
+
+### Step 3: Set Up Environment Variables
+
+Environment variables store secret configuration values that should not be shared publicly, such as database credentials.
+
+**Create a `.env` file:**
 
 ```bash
 cp .env.example .env
 ```
 
-Then update `.env` with your credentials:
+**Edit the `.env` file with your own values:**
 
 ```env
+# Database configuration
 DATABASE_URL="mysql://root:mysql@localhost:3306/vibe_db"
-JWT_SECRET="replace-with-a-random-secret-of-at-least-32-chars"
+# Format: mysql://username:password@host:port/database_name
+
+# JWT configuration (use a random string with at least 32 characters)
+JWT_SECRET="replace-with-a-random-string-of-32-or-more-characters"
+
+# Application port
 PORT=3000
+
+# CORS (allowed request origin)
 CORS_ORIGIN=
 ```
 
-### 4. Setup MySQL Database
+---
 
-**Option A: Using Docker (recommended)**
+### Step 4: Set Up MySQL Database
+
+#### Option A: Use Docker (Recommended)
+
+Docker lets you run applications inside isolated containers.
 
 ```bash
-sudo docker run -d \
+docker run -d \
   --name mysql-db \
   -e MYSQL_ROOT_PASSWORD=mysql \
   -e MYSQL_DATABASE=vibe_db \
@@ -104,31 +235,62 @@ sudo docker run -d \
   mysql:8.0
 ```
 
-**Option B: Using an existing MySQL instance**
+**Explanation:**
 
-Create the database manually:
+- `-d` = run in the background
+- `--name mysql-db` = container name
+- `-e MYSQL_ROOT_PASSWORD=mysql` = MySQL root password
+- `-e MYSQL_DATABASE=vibe_db` = create a database named `vibe_db`
+- `-p 3306:3306` = port mapping
+- `mysql:8.0` = MySQL version used
 
-```sql
-CREATE DATABASE IF NOT EXISTS vibe_db;
+**Check whether MySQL is running:**
+
+```bash
+docker ps
 ```
 
-### 5. Run Database Migrations
+#### Option B: Use Local MySQL
 
-Push the schema to the database:
+If MySQL is already installed on your computer:
+
+```bash
+# Log in to MySQL
+mysql -u root -p
+
+# Run this inside the MySQL CLI:
+CREATE DATABASE IF NOT EXISTS vibe_db;
+EXIT;
+```
+
+---
+
+### Step 5: Run Database Migration
+
+A migration creates database tables based on the schema you defined in the codebase.
 
 ```bash
 bun run db:push
 ```
 
-### 6. Start the Development Server
+**Expected output:**
+
+```text
+✓ Database schema pushed successfully
+✓ 2 tables created: users, notes
+```
+
+---
+
+### Step 6: Start the Server
 
 ```bash
 bun run dev
 ```
 
-You should see:
+**Expected output:**
 
-```
+```text
   ███╗   ██╗ ██████╗ ████████╗███████╗███████╗
   ████╗  ██║██╔═══██╗╚══██╔══╝██╔════╝██╔════╝
   ██╔██╗ ██║██║   ██║   ██║   █████╗  ███████╗
@@ -137,107 +299,193 @@ You should see:
   ╚═╝  ╚═══╝ ╚═════╝    ╚═╝   ╚══════╝╚══════╝
             A P I   S E R V E R
   ─────────────────────────────────────────────
-  ▶  Status   : Running
+  ▶  Status   : Running ✅
   ▶  Port     : http://localhost:3000
-  ▶  Docs     : http://localhost:3000/api/v1
+  ▶  Endpoint : http://localhost:3000/api/v1
   ▶  Mode     : development
   ─────────────────────────────────────────────
 ```
 
----
-
-## Available Scripts
-
-| Script | Description |
-|--------|-------------|
-| `bun run dev` | Start development server with hot reload |
-| `bun run test` | Run the isolated Bun test suite |
-| `bun run typecheck` | Run TypeScript strict checks without emitting files |
-| `bun run db:push` | Push Drizzle schema changes to database |
-| `bun run db:generate` | Generate SQL migration files |
-| `bun run db:migrate` | Apply committed Drizzle migrations |
+The server is now running successfully.
 
 ---
 
-## Database Schema
+## Important Commands
+
+| Command | Function | When to Use |
+|---------|----------|-------------|
+| `bun run dev` | Start the server with auto-reload | During development |
+| `bun run test` | Run all unit tests (38 tests) | Before pushing changes |
+| `bun run typecheck` | Check for TypeScript errors | Validate syntax without running |
+| `bun run db:push` | Update database schema | After changing schema |
+| `bun run db:generate` | Generate migration files | After updating schema in code |
+| `bun run db:migrate` | Apply migrations to the database | For production setup |
+
+**Example:**
+
+```bash
+# Development
+bun run dev
+
+# Testing
+bun run test
+
+# Database
+bun run db:push
+```
+
+---
+
+## Database Structure
 
 ### `users` Table
 
-| Column | Type | Constraints |
-|--------|------|-------------|
-| `id` | INT | PRIMARY KEY, AUTO_INCREMENT |
-| `name` | VARCHAR(255) | NOT NULL |
-| `email` | VARCHAR(255) | NOT NULL, UNIQUE |
-| `password` | VARCHAR(255) | NOT NULL (bcrypt hash) |
-| `created_at` | TIMESTAMP | DEFAULT CURRENT_TIMESTAMP |
-| `updated_at` | TIMESTAMP | DEFAULT CURRENT_TIMESTAMP ON UPDATE |
+This table stores user information.
 
-### `notes` Table
+| Column | Type | Description |
+|-------|------|-------------|
+| `id` | INT | Unique user ID (auto increment) |
+| `name` | VARCHAR(255) | User's name |
+| `email` | VARCHAR(255) | Email address (must be unique) |
+| `password` | VARCHAR(255) | Hashed password |
+| `created_at` | TIMESTAMP | Account creation time |
+| `updated_at` | TIMESTAMP | Last updated time |
 
-| Column | Type | Constraints |
-|--------|------|-------------|
-| `id` | INT | PRIMARY KEY, AUTO_INCREMENT |
-| `user_id` | INT | FOREIGN KEY → `users.id` |
-| `title` | VARCHAR(255) | NOT NULL |
-| `content` | TEXT | NOT NULL |
-| `created_at` | TIMESTAMP | DEFAULT CURRENT_TIMESTAMP |
-| `updated_at` | TIMESTAMP | DEFAULT CURRENT_TIMESTAMP ON UPDATE |
+**Example data:**
+
+```text
+id | name      | email            | password (hash) | created_at
+1  | John Doe  | john@example.com | $2a$10$xxxx...  | 2024-06-03
+```
 
 ---
 
-## API Reference
+### `notes` Table
+
+This table stores all notes created by users.
+
+| Column | Type | Description |
+|-------|------|-------------|
+| `id` | INT | Unique note ID |
+| `user_id` | INT | ID of the user who created the note (FK) |
+| `title` | VARCHAR(255) | Note title |
+| `content` | TEXT | Note content |
+| `created_at` | TIMESTAMP | Note creation time |
+| `updated_at` | TIMESTAMP | Last updated time |
+
+**Example data:**
+
+```text
+id | user_id | title      | content               | created_at
+1  | 1       | My Notes   | This is a note...     | 2024-06-03
+2  | 1       | To Do List | 1. Buy milk...        | 2024-06-03
+```
+
+**Table relationship:**
+
+```text
+users (1) ──── (Many) notes
+         via user_id
+```
+
+---
+
+## Security and Authentication
 
 ### Base URL
 
-```
+```text
 http://localhost:3000/api/v1
 ```
 
+**Example endpoints:**
+
+- `http://localhost:3000/api/v1/auth/register`
+- `http://localhost:3000/api/v1/auth/login`
+- `http://localhost:3000/api/v1/notes`
+
+---
+
 ### Request Format
 
-All request bodies must use **form-data** encoding:
+All request bodies use **form-data**:
 
-```
+```text
 Content-Type: application/x-www-form-urlencoded
 ```
 
+**Example:**
+
+```text
+name=John Doe&email=john@example.com&password=secret123
+```
+
+---
+
 ### Response Format
 
-All responses return JSON in the following structure:
+All responses are JSON with the same structure:
 
 ```json
 {
-  "message": "Description of result",
-  "data": { } // object, array, or null
+  "message": "Descriptive message",
+  "data": {}
+}
+```
+
+The `data` field can be an object, an array, or `null`.
+
+**Success example:**
+
+```json
+{
+  "message": "User logged in successfully",
+  "data": {
+    "id": 1,
+    "name": "John Doe",
+    "email": "john@example.com",
+    "token": "eyJhbGciOiJIUzI1NiIs..."
+  }
+}
+```
+
+**Error example:**
+
+```json
+{
+  "message": "Validation error",
+  "data": null
 }
 ```
 
 ---
 
-### Authentication Endpoints
+## Authentication Endpoints
 
-#### Register
+### 1. Register
 
 ```http
 POST /api/v1/auth/register
 ```
 
-**Request Body:**
+Creates a new account using a name, email, and password.
 
-| Field | Type | Required |
-|-------|------|----------|
-| `name` | string | ✅ |
-| `email` | string | ✅ |
-| `password` | string | ✅ |
+**Required fields:**
 
-**Example:**
+| Field | Type | Required | Example |
+|-------|------|----------|---------|
+| `name` | string | Yes | John Doe |
+| `email` | string | Yes | john@example.com |
+| `password` | string | Yes | secret123 |
+
+**Example using curl:**
 
 ```bash
 curl -X POST http://localhost:3000/api/v1/auth/register \
   -d "name=John Doe&email=john@example.com&password=password123"
 ```
 
-**Success Response `201`:**
+**Successful response (201 Created):**
 
 ```json
 {
@@ -246,13 +494,13 @@ curl -X POST http://localhost:3000/api/v1/auth/register \
     "id": 1,
     "name": "John Doe",
     "email": "john@example.com",
-    "createdAt": "2022-01-01T00:00:00.000Z",
-    "updatedAt": "2022-01-01T00:00:00.000Z"
+    "createdAt": "2024-06-03T10:00:00.000Z",
+    "updatedAt": "2024-06-03T10:00:00.000Z"
   }
 }
 ```
 
-**Error Response `400`:**
+**Error response (400 - email already registered):**
 
 ```json
 {
@@ -263,27 +511,29 @@ curl -X POST http://localhost:3000/api/v1/auth/register \
 
 ---
 
-#### Login
+### 2. Login
 
 ```http
 POST /api/v1/auth/login
 ```
 
-**Request Body:**
+Logs in a user and returns an authentication token.
+
+**Required fields:**
 
 | Field | Type | Required |
 |-------|------|----------|
-| `email` | string | ✅ |
-| `password` | string | ✅ |
+| `email` | string | Yes |
+| `password` | string | Yes |
 
-**Example:**
+**Example using curl:**
 
 ```bash
 curl -X POST http://localhost:3000/api/v1/auth/login \
   -d "email=john@example.com&password=password123"
 ```
 
-**Success Response `200`:**
+**Successful response (200 OK):**
 
 ```json
 {
@@ -292,23 +542,40 @@ curl -X POST http://localhost:3000/api/v1/auth/login \
     "id": 1,
     "name": "John Doe",
     "email": "john@example.com",
-    "createdAt": "2022-01-01T00:00:00.000Z",
-    "updatedAt": "2022-01-01T00:00:00.000Z",
+    "createdAt": "2024-06-03T10:00:00.000Z",
+    "updatedAt": "2024-06-03T10:00:00.000Z",
     "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
   }
 }
 ```
 
+**Important:** Save this token. It is valid for **1 day** and is required to access notes endpoints.
+
 ---
 
-#### Logout
+### 3. Logout
 
 ```http
 POST /api/v1/auth/logout
 Authorization: Bearer <token>
 ```
 
-**Success Response `200`:**
+Logs the user out and revokes the token so it can no longer be used.
+
+**Header:**
+
+```text
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+```
+
+**Example using curl:**
+
+```bash
+curl -X POST http://localhost:3000/api/v1/auth/logout \
+  -H "Authorization: Bearer <token>"
+```
+
+**Successful response (200 OK):**
 
 ```json
 {
@@ -319,33 +586,41 @@ Authorization: Bearer <token>
 
 ---
 
-### Notes Endpoints
+## Notes Endpoints (CRUD)
 
-> All notes endpoints require an `Authorization: Bearer <token>` header.
+**Important:** All notes endpoints require the following header:
 
-#### Create Note
+```text
+Authorization: Bearer <token>
+```
+
+Replace `<token>` with the token you received during login.
+
+---
+
+### 1. Create a New Note
 
 ```http
 POST /api/v1/notes
 Authorization: Bearer <token>
 ```
 
-**Request Body:**
+**Required fields:**
 
 | Field | Type | Required |
 |-------|------|----------|
-| `title` | string | ✅ |
-| `content` | string | ✅ |
+| `title` | string | Yes |
+| `content` | string | Yes |
 
-**Example:**
+**Example using curl:**
 
 ```bash
 curl -X POST http://localhost:3000/api/v1/notes \
   -H "Authorization: Bearer <token>" \
-  -d "title=My Note&content=Hello World"
+  -d "title=Important Note&content=Do not forget to buy milk"
 ```
 
-**Success Response `201`:**
+**Successful response (201 Created):**
 
 ```json
 {
@@ -353,24 +628,33 @@ curl -X POST http://localhost:3000/api/v1/notes \
   "data": {
     "id": 1,
     "userId": 1,
-    "title": "My Note",
-    "content": "Hello World",
-    "createdAt": "2022-01-01T00:00:00.000Z",
-    "updatedAt": "2022-01-01T00:00:00.000Z"
+    "title": "Important Note",
+    "content": "Do not forget to buy milk",
+    "createdAt": "2024-06-03T10:00:00.000Z",
+    "updatedAt": "2024-06-03T10:00:00.000Z"
   }
 }
 ```
 
 ---
 
-#### Get All Notes
+### 2. Get All My Notes
 
 ```http
 GET /api/v1/notes
 Authorization: Bearer <token>
 ```
 
-**Success Response `200`:**
+Returns all notes created by the currently logged-in user.
+
+**Example using curl:**
+
+```bash
+curl -X GET http://localhost:3000/api/v1/notes \
+  -H "Authorization: Bearer <token>"
+```
+
+**Successful response (200 OK):**
 
 ```json
 {
@@ -379,10 +663,18 @@ Authorization: Bearer <token>
     {
       "id": 1,
       "userId": 1,
-      "title": "My Note",
-      "content": "Hello World",
-      "createdAt": "2022-01-01T00:00:00.000Z",
-      "updatedAt": "2022-01-01T00:00:00.000Z"
+      "title": "Important Note",
+      "content": "Do not forget to buy milk",
+      "createdAt": "2024-06-03T10:00:00.000Z",
+      "updatedAt": "2024-06-03T10:00:00.000Z"
+    },
+    {
+      "id": 2,
+      "userId": 1,
+      "title": "To Do List",
+      "content": "1. Buy milk\n2. Study coding",
+      "createdAt": "2024-06-03T10:05:00.000Z",
+      "updatedAt": "2024-06-03T10:05:00.000Z"
     }
   ]
 }
@@ -390,14 +682,25 @@ Authorization: Bearer <token>
 
 ---
 
-#### Get Note by ID
+### 3. Get a Note by ID
 
 ```http
 GET /api/v1/notes/:id
 Authorization: Bearer <token>
 ```
 
-**Success Response `200`:**
+**Parameter:**
+
+- `id` = note ID
+
+**Example using curl:**
+
+```bash
+curl -X GET http://localhost:3000/api/v1/notes/1 \
+  -H "Authorization: Bearer <token>"
+```
+
+**Successful response (200 OK):**
 
 ```json
 {
@@ -405,15 +708,15 @@ Authorization: Bearer <token>
   "data": {
     "id": 1,
     "userId": 1,
-    "title": "My Note",
-    "content": "Hello World",
-    "createdAt": "2022-01-01T00:00:00.000Z",
-    "updatedAt": "2022-01-01T00:00:00.000Z"
+    "title": "Important Note",
+    "content": "Do not forget to buy milk",
+    "createdAt": "2024-06-03T10:00:00.000Z",
+    "updatedAt": "2024-06-03T10:00:00.000Z"
   }
 }
 ```
 
-**Error Response `404`:**
+**Error response (404 Not Found):**
 
 ```json
 {
@@ -424,47 +727,71 @@ Authorization: Bearer <token>
 
 ---
 
-#### Get Notes by User ID
+### 4. Get Notes by User ID
 
 ```http
 GET /api/v1/notes/user/:userId
 Authorization: Bearer <token>
 ```
 
-**Success Response `200`:**
+**Parameter:**
+
+- `userId` = ID of the user whose notes you want to retrieve
+
+**Example using curl:**
+
+```bash
+curl -X GET http://localhost:3000/api/v1/notes/user/1 \
+  -H "Authorization: Bearer <token>"
+```
+
+**Successful response (200 OK):**
 
 ```json
 {
   "message": "Notes retrieved successfully",
-  "data": [...]
+  "data": [
+    {
+      "id": 1,
+      "userId": 1,
+      "title": "Important Note",
+      "content": "...",
+      "createdAt": "...",
+      "updatedAt": "..."
+    }
+  ]
 }
 ```
 
 ---
 
-#### Update Note
+### 5. Update a Note
 
 ```http
 PUT /api/v1/notes/:id
 Authorization: Bearer <token>
 ```
 
-**Request Body:**
+**Parameter:**
+
+- `id` = note ID to update
+
+**Request fields:** at least one of the following must be provided.
 
 | Field | Type | Required |
 |-------|------|----------|
-| `title` | string | At least one |
-| `content` | string | At least one |
+| `title` | string | One of the two |
+| `content` | string | One of the two |
 
-**Example:**
+**Example using curl:**
 
 ```bash
 curl -X PUT http://localhost:3000/api/v1/notes/1 \
   -H "Authorization: Bearer <token>" \
-  -d "title=Updated Title&content=Updated content"
+  -d "title=Updated Note&content=New content"
 ```
 
-**Success Response `200`:**
+**Successful response (200 OK):**
 
 ```json
 {
@@ -472,31 +799,35 @@ curl -X PUT http://localhost:3000/api/v1/notes/1 \
   "data": {
     "id": 1,
     "userId": 1,
-    "title": "Updated Title",
-    "content": "Updated content",
-    "createdAt": "2022-01-01T00:00:00.000Z",
-    "updatedAt": "2022-01-02T00:00:00.000Z"
+    "title": "Updated Note",
+    "content": "New content",
+    "createdAt": "2024-06-03T10:00:00.000Z",
+    "updatedAt": "2024-06-03T10:10:00.000Z"
   }
 }
 ```
 
 ---
 
-#### Delete Note
+### 6. Delete a Note
 
 ```http
 DELETE /api/v1/notes/:id
 Authorization: Bearer <token>
 ```
 
-**Example:**
+**Parameter:**
+
+- `id` = note ID to delete
+
+**Example using curl:**
 
 ```bash
 curl -X DELETE http://localhost:3000/api/v1/notes/1 \
   -H "Authorization: Bearer <token>"
 ```
 
-**Success Response `200`:**
+**Successful response (200 OK):**
 
 ```json
 {
@@ -507,17 +838,221 @@ curl -X DELETE http://localhost:3000/api/v1/notes/1 \
 
 ---
 
-## Error Responses
+## HTTP Error Codes
 
-| HTTP Status | When |
-|------------|------|
-| `400` | Missing/invalid request fields |
-| `401` | Missing or invalid JWT token |
-| `404` | Resource not found |
-| `500` | Internal server error |
+| HTTP Code | Meaning | Cause | Solution |
+|-----------|---------|-------|----------|
+| **200** | OK | Request succeeded | — |
+| **201** | Created | Resource created successfully | — |
+| **400** | Bad Request | Invalid or incomplete input | Check the submitted data |
+| **401** | Unauthorized | Missing, invalid, or expired token | Log in again and get a new token |
+| **404** | Not Found | Requested resource does not exist | Check the ID or endpoint URL |
+| **500** | Server Error | Internal server issue | Contact the developer |
+
+**Example error responses:**
+
+**400 - Validation failed**
+
+```json
+{
+  "message": "Email is required",
+  "data": null
+}
+```
+
+**401 - Invalid token**
+
+```json
+{
+  "message": "Unauthorized: Token missing or invalid",
+  "data": null
+}
+```
+
+**404 - Note not found**
+
+```json
+{
+  "message": "Note not found",
+  "data": null
+}
+```
+
+---
+
+## Testing
+
+This application includes **38 unit tests** to ensure code quality.
+
+**Run all tests:**
+
+```bash
+bun run test
+```
+
+**Expected output:**
+
+```text
+38 pass
+0 fail
+114 expect() calls
+Ran 38 tests across 19 files.
+```
+
+**Test coverage includes:**
+
+- Auth: register, login, logout
+- Notes: CRUD operations
+- Middleware: JWT verification
+- Services: business logic
+- Repositories: database queries
+- Routes: endpoint wiring
+- Utils: JWT utilities
+
+Each layer of the application is tested to help prevent bugs.
+
+---
+
+## What Is a JWT Token?
+
+JWT (*JSON Web Token*) is a secure way to identify users without sending their password on every request.
+
+**Simple analogy:** It is like a movie ticket. After you buy the ticket, you do not need to pay again each time you enter. You just show the ticket.
+
+**How it works:**
+
+1. The user logs in with email and password
+2. The server generates a token and sends it to the user
+3. The user stores the token and includes it in every request
+4. The server verifies the token; if valid, access is granted
+
+**Token validity:** 1 day
+
+---
+
+## What Is bcryptjs?
+
+`bcryptjs` is a library used to hash passwords. This means passwords are stored securely and cannot be read in plain text, even by the server administrator.
+
+**Example:**
+
+```text
+Original password: "password123"
+Hashed password: "$2a$10$kN21cpF3/Us.MNNC3z0CuO2/q94F.."
+```
+
+Passwords are never stored in their original form. Only the hash is saved.
+
+---
+
+## What Is an ORM?
+
+An ORM (*Object-Relational Mapping*) acts like a translator between JavaScript code and an SQL database.
+
+**Without ORM (raw SQL):**
+
+```sql
+SELECT * FROM users WHERE id = 1;
+```
+
+**With ORM (Drizzle):**
+
+```typescript
+const user = await db.select().from(users).where(eq(users.id, 1));
+```
+
+Using an ORM makes code easier to read and helps protect against SQL injection.
+
+---
+
+## Folder Structure Best Practice
+
+This project follows the **Clean Architecture** pattern:
+
+```text
+routes/       - Entry point (URL routing)
+  ↓
+controllers/  - Receives & validates HTTP requests
+  ↓
+services/     - Business logic
+  ↓
+repositories/ - Database queries
+  ↓
+database/     - Actual data storage
+```
+
+Each layer has a clear and separate responsibility. This makes the codebase easier to maintain and test.
+
+---
+
+## Tips and Troubleshooting
+
+### Error: `Cannot find module 'mysql2'`
+
+**Solution:**
+
+```bash
+bun install
+```
+
+### Error: `ECONNREFUSED 127.0.0.1:3306`
+
+**Meaning:** MySQL is not running.
+
+**Solution:**
+
+- If using Docker: `docker start mysql-db`
+- If using local MySQL: make sure the MySQL service is running
+
+### Error: `Invalid token`
+
+**Meaning:** The token is expired or incorrect.
+
+**Solution:**
+
+- Log in again to get a new token
+- Tokens are only valid for 1 day
+
+### Error: `UNIQUE constraint failed: users.email`
+
+**Meaning:** The email is already registered.
+
+**Solution:**
+
+- Use a different email address when registering
+
+---
+
+## Learning Resources
+
+- [Express.js Documentation](https://expressjs.com/)
+- [Drizzle ORM Documentation](https://orm.drizzle.team/)
+- [JWT.io](https://jwt.io/)
+- [Bun Official Documentation](https://bun.sh/docs)
+- [MySQL Documentation](https://dev.mysql.com/doc/)
+
+---
+
+## Contributing
+
+If you want to contribute or report a bug:
+
+1. Fork the repository
+2. Create a new branch: `git checkout -b feature/your-feature-name`
+3. Commit your changes: `git commit -am 'Add feature'`
+4. Push the branch: `git push origin feature/your-feature-name`
+5. Open a Pull Request
 
 ---
 
 ## License
 
-MIT
+MIT — free to use for both commercial and personal purposes.
+
+---
+
+## Contact
+
+For questions or suggestions, please open an issue in the GitHub repository.
+
+---
