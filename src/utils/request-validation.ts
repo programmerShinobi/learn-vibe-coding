@@ -6,33 +6,26 @@
   functions operate on `unknown` input and either return a narrowed typed
   object or throw a descriptive `Error` on validation failure.
 
+  Input shapes are defined in the DTO layer (`src/dto/`) and re-exported here
+  for convenience so controllers only need to import from this file.
+
   Exported types and functions:
-  - `RegisterInput` / `LoginInput` / `NoteInput` / `NoteUpdateInput`: input shapes.
+  - `RegisterInput` / `LoginInput` / `NoteInput` / `NoteUpdateInput`: re-exports of DTO input types.
   - `parsePositiveInteger(value)`: safely parse and validate positive integers.
   - `validateRegisterInput(body)`, `validateLoginInput(body)`,
     `validateNoteInput(body)`, `validateNoteUpdateInput(body)`: validators that
     throw on invalid input and return strongly-typed values on success.
 */
+import type { RegisterRequestDto, LoginRequestDto } from "../dto/auth.dto";
+import type { CreateNoteDto, UpdateNoteDto } from "../dto/note.dto";
 
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-export type RegisterInput = {
-  name: string;
-  email: string;
-  password: string;
-};
-
-export type LoginInput = {
-  email: string;
-  password: string;
-};
-
-export type NoteInput = {
-  title: string;
-  content: string;
-};
-
-export type NoteUpdateInput = Partial<NoteInput>;
+// Re-export DTO input types under the names controllers already use.
+export type RegisterInput = RegisterRequestDto;
+export type LoginInput = LoginRequestDto;
+export type NoteInput = Pick<CreateNoteDto, "title" | "content">;
+export type NoteUpdateInput = UpdateNoteDto;
 
 // Helper: coerce unknown values to trimmed strings for consistent validation.
 const getTrimmedString = (value: unknown) => (typeof value === "string" ? value.trim() : "");

@@ -15,6 +15,7 @@ import type { Request, Response } from "express";
 import { registerUser, loginUser } from "../services/auth.service";
 import { validateLoginInput, validateRegisterInput } from "../utils/request-validation";
 import { revokeToken } from "../repositories/token.repository";
+import { verifyToken } from "../utils/jwt.utils";
 
 /**
  * POST /api/v1/auth/register
@@ -57,16 +58,14 @@ export const login = async (req: Request, res: Response): Promise<void> => {
 export const logout = async (req: Request, res: Response): Promise<void> => {
   try {
     // If the client provided an Authorization header, revoke that token.
-    const authHeader = req.headers?.authorization;
-    if (authHeader && authHeader.startsWith("Bearer ")) {
-      const token = authHeader.split(" ")[1];
-      if (token) {
-        // Try to read the token's expiry from the decoded payload so we can
-        // store an appropriate `expiresAt` value for cleanup.
-        const decoded: any = (await import("../utils/jwt.utils")).verifyToken(token);
-        const exp = decoded?.exp ? new Date(decoded.exp * 1000) : new Date(Date.now() + 24 * 60 * 60 * 1000);
-        await revokeToken(token, exp);
-      }
+    const authHeader = req.headers.authorization;
+    const token = authHeader?.startsWith("Bearer ") ? authHeader.split(" ")[1] : undefined;
+    if (token) {
+      // Read the token's expiry from the decoded payload to store an accurate
+      // `expiresAt` value so expired rows can be cleaned up later.
+      const decoded = verifyToken(token) as { exp?: number } | null;
+      const exp = decoded?.exp ? new Date(decoded.exp * 1000) : new Date(Date.now() + 24 * 60 * 60 * 1000);
+      await revokeToken(token, exp);
     }
 
     // In all cases respond with success. Clients should also remove tokens
