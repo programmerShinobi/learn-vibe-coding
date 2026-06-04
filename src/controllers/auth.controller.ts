@@ -58,7 +58,7 @@ export const login = async (req: Request, res: Response): Promise<void> => {
 export const logout = async (req: Request, res: Response): Promise<void> => {
   try {
     // If the client provided an Authorization header, revoke that token.
-    const authHeader = req.headers.authorization;
+    const authHeader = req.headers?.authorization;
     const token = authHeader?.startsWith("Bearer ") ? authHeader.split(" ")[1] : undefined;
     if (token) {
       // Read the token's expiry from the decoded payload to store an accurate
