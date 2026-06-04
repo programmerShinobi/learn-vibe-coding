@@ -9,7 +9,9 @@ A server application for managing notes with user authentication. It is built wi
 ## Key Features
 
 - **User Registration & Login** — Authentication system with encrypted passwords
+- **JWT Token Revocation** — Tokens are invalidated server-side on logout
 - **Notes CRUD** — Create, read, update, and delete notes
+- **DTO Layer** — Explicit request/response types that keep DB schema types internal
 - **Security** — JWT-based protection for user data
 - **Database** — Secure data storage using MySQL
 - **Unit Tests** — 38 automated tests to ensure code quality
@@ -39,51 +41,58 @@ A server application for managing notes with user authentication. It is built wi
 │   ├── 📄 server.ts           # Entrypoint - starts the server
 │   │
 │   ├── 📁 config/             # Application configuration
+│   │   ├── 📄 cors.config.ts  # CORS allowed origins configuration
 │   │   ├── 📄 db.config.ts    # Database connection configuration
 │   │   └── 📄 jwt.config.ts   # JWT configuration (secret, expiration)
 │   │
 │   ├── 📁 db/                 # Database
 │   │   └── 📄 index.ts        # Drizzle ORM initialization & MySQL connection
 │   │
-│   ├── 📁 schema/             # Database table definitions
+│   ├── 📁 dto/                # Data Transfer Objects
+│   │   ├── 📄 auth.dto.ts     # Auth request & response types (RegisterRequestDto, LoginResponseDto, …)
+│   │   └── 📄 note.dto.ts     # Note request & response types (CreateNoteDto, NoteResponseDto, …)
+│   │
+│   ├── 📁 schema/             # Database table definitions (Drizzle ORM)
 │   │   ├── 📄 auth.schema.ts  # 'users' table structure
-│   │   └── 📄 note.schema.ts  # 'notes' table structure
+│   │   ├── 📄 note.schema.ts  # 'notes' table structure
+│   │   └── 📄 token.schema.ts # 'revoked_tokens' table structure
 │   │
 │   ├── 📁 repositories/       # Direct database access
 │   │   ├── 📄 auth.repository.ts  # Queries for users table
 │   │   ├── 📄 note.repository.ts  # Queries for notes table
-│   │   └── 📄 token.repository.ts # Queries for revoked tokens
+│   │   └── 📄 token.repository.ts # Queries for revoked_tokens table
 │   │
 │   ├── 📁 services/           # Business logic
 │   │   ├── 📄 auth.service.ts # Registration, login, password hashing
 │   │   └── 📄 note.service.ts # Notes CRUD logic
 │   │
 │   ├── 📁 controllers/        # Handle HTTP requests/responses
-│   │   ├── 📄 auth.controller.ts  # Registration & login endpoints
+│   │   ├── 📄 auth.controller.ts  # Register, login, logout endpoints
 │   │   └── 📄 note.controller.ts  # Notes CRUD endpoints
 │   │
 │   ├── 📁 middlewares/        # Functions executed before controllers
-│   │   └── 📄 auth.middleware.ts  # JWT token verification
+│   │   └── 📄 auth.middleware.ts  # JWT token verification & revocation check
 │   │
 │   ├── 📁 routes/             # Endpoint definitions
 │   │   ├── 📄 auth.routes.ts  # Routes for /api/v1/auth
 │   │   ├── 📄 note.routes.ts  # Routes for /api/v1/notes
-│   │   └── 📄 index.ts        # Combines all routes
+│   │   └── 📄 index.ts        # Aggregates all route groups
 │   │
 │   └── 📁 utils/              # Helper functions
-│       ├── 📄 jwt.utils.ts    # Generate & verify JWT
-│       └── 📄 request-validation.ts
+│       ├── 📄 jwt.utils.ts             # Generate & verify JWT
+│       └── 📄 request-validation.ts    # Input validation helpers
 │
-├── 📁 test/                   # All unit tests (38 tests)
-│   ├── 📁 config/
-│   ├── 📁 controllers/
-│   ├── 📁 services/
-│   ├── 📁 middlewares/
-│   ├── 📁 repositories/
-│   ├── 📁 routes/
-│   ├── 📁 schema/
-│   ├── 📁 utils/
-│   └── 📁 test-utils/
+├── 📁 test/                   # All unit tests (38 tests across 19 files)
+│   ├── 📁 config/             # Tests for db.config and jwt.config
+│   ├── 📁 controllers/        # Tests for auth and note controllers
+│   ├── 📁 db/                 # Tests for DB initialization
+│   ├── 📁 middlewares/        # Tests for auth middleware
+│   ├── 📁 repositories/       # Tests for auth and note repositories
+│   ├── 📁 routes/             # Tests for route wiring
+│   ├── 📁 schema/             # Tests for Drizzle schema definitions
+│   ├── 📁 services/           # Tests for auth and note services
+│   ├── 📁 utils/              # Tests for JWT utilities
+│   └── 📁 test-utils/         # Shared mock helpers
 │
 ├── 📁 drizzle/                # Database migrations
 │   ├── 📄 *.sql               # Migration files
@@ -109,19 +118,23 @@ User Request
 └─────────────────────────────────────┘
     ↓
 ┌─────────────────────────────────────┐
-│ Middleware (middlewares/)           │ → Verifies JWT token
+│ Middleware (middlewares/)           │ → Verifies JWT; checks token revocation
 └─────────────────────────────────────┘
     ↓
 ┌─────────────────────────────────────┐
-│ Controller (controllers/)           │ → Validates input, formats response
+│ Controller (controllers/)           │ → Validates input via request-validation.ts
 └─────────────────────────────────────┘
     ↓
 ┌─────────────────────────────────────┐
-│ Service (services/)                 │ → Business logic, password encryption, etc.
+│ DTO (dto/)                          │ → Typed request/response shapes crossing layer boundaries
 └─────────────────────────────────────┘
     ↓
 ┌─────────────────────────────────────┐
-│ Repository (repositories/)          │ → Sends queries to the database
+│ Service (services/)                 │ → Business logic, password hashing, token generation
+└─────────────────────────────────────┘
+    ↓
+┌─────────────────────────────────────┐
+│ Repository (repositories/)          │ → Sends type-safe queries to the database
 └─────────────────────────────────────┘
     ↓
 ┌─────────────────────────────────────┐
@@ -138,8 +151,9 @@ JSON Response → User
 | Layer | Function | Analogy |
 |-------|----------|---------|
 | **Routes** | Defines URL endpoints | Front door |
-| **Middleware** | Verifies requests before access | Security guard |
+| **Middleware** | Verifies JWT and checks token revocation | Security guard |
 | **Controller** | Receives and validates input | Receptionist |
+| **DTO** | Typed shapes passed between controller and service | Official form templates |
 | **Service** | Processes business logic | Chef preparing the dish |
 | **Repository** | Executes database queries | Warehouse clerk |
 | **Database** | Stores and retrieves data | Storage warehouse |
@@ -277,7 +291,7 @@ bun run db:push
 
 ```text
 ✓ Database schema pushed successfully
-✓ 2 tables created: users, notes
+✓ 3 tables created: users, notes, revoked_tokens
 ```
 
 ---
@@ -387,6 +401,21 @@ id | user_id | title      | content               | created_at
 users (1) ──── (Many) notes
          via user_id
 ```
+
+---
+
+### `revoked_tokens` Table
+
+Stores JWTs that have been explicitly invalidated on logout. The auth middleware checks this table on every request to reject revoked tokens before their natural expiry.
+
+| Column | Type | Description |
+|-------|------|-------------|
+| `id` | INT | Primary key (auto increment) |
+| `token` | VARCHAR(1024) | Full JWT string that was revoked |
+| `expires_at` | TIMESTAMP | Token's original expiry time (used for cleanup) |
+| `created_at` | TIMESTAMP | When the token was revoked |
+
+**Important:** For production, consider storing a hash of the token instead of the raw JWT string to avoid keeping sensitive values in the database in plaintext.
 
 ---
 
@@ -882,7 +911,7 @@ curl -X DELETE http://localhost:3000/api/v1/notes/1 \
 
 ## Testing
 
-This application includes **38 unit tests** to ensure code quality.
+This application includes **38 unit tests** across **19 files** to ensure code quality.
 
 **Run all tests:**
 
@@ -901,13 +930,18 @@ Ran 38 tests across 19 files.
 
 **Test coverage includes:**
 
-- Auth: register, login, logout
-- Notes: CRUD operations
-- Middleware: JWT verification
-- Services: business logic
-- Repositories: database queries
-- Routes: endpoint wiring
-- Utils: JWT utilities
+| Area | What is tested |
+|------|---------------|
+| **Config** | DB and JWT configuration loading & validation |
+| **DB** | Drizzle ORM initialization |
+| **Schema** | Drizzle table definitions |
+| **Repositories** | Auth and note database queries |
+| **Services** | Business logic for auth and notes |
+| **Controllers** | Register, login, logout, notes CRUD handlers |
+| **Middleware** | JWT verification and token revocation check |
+| **Routes** | Endpoint wiring for `/auth` and `/notes` |
+| **Utils** | JWT generate and verify helpers |
+| **Test utils** | Shared mock helpers |
 
 Each layer of the application is tested to help prevent bugs.
 
@@ -974,9 +1008,11 @@ routes/       - Entry point (URL routing)
   ↓
 controllers/  - Receives & validates HTTP requests
   ↓
+dto/          - Typed request/response shapes (no DB types leak across layers)
+  ↓
 services/     - Business logic
   ↓
-repositories/ - Database queries
+repositories/ - Database queries (Drizzle schema types stay here)
   ↓
 database/     - Actual data storage
 ```
