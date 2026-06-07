@@ -24,7 +24,9 @@ describe("app", () => {
     const appWithRouter = app as any;
     const routeLayers = appWithRouter.router.stack;
     const apiLayer = routeLayers.find((layer: any) => layer.name === "router");
-    const notFoundLayer = routeLayers.at(-1);
+    // The centralized error handler is registered last; the 404 handler sits
+    // just before it. Locate it by its handler function name to stay robust.
+    const notFoundLayer = routeLayers.find((layer: any) => layer.handle?.name === "notFoundHandler");
     const res = createMockResponse();
 
     notFoundLayer.handle({}, res, () => undefined);

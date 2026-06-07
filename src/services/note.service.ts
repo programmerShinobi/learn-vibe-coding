@@ -14,15 +14,19 @@
   - Return the persisted note objects to controllers for response building.
 */
 import * as noteRepo from "../repositories/note.repository";
+import { AppError, NotFoundError } from "../errors";
 import type { CreateNoteDto, UpdateNoteDto, NoteResponseDto } from "../dto/note.dto";
 
 export const createNote = async (noteData: CreateNoteDto): Promise<NoteResponseDto> => {
-  return await noteRepo.createNote(noteData);
+  const note = await noteRepo.createNote(noteData);
+  // The repository inserts then re-selects; a missing row here is unexpected.
+  if (!note) throw new AppError("Failed to create note", 500);
+  return note;
 };
 
 export const getNoteById = async (id: number, userId: number): Promise<NoteResponseDto> => {
   const note = await noteRepo.getNoteById(id, userId);
-  if (!note) throw new Error("Note not found");
+  if (!note) throw new NotFoundError("Note not found");
   return note;
 };
 
@@ -41,14 +45,17 @@ export const getNotesByUserId = async (userId: number): Promise<NoteResponseDto[
 
 export const updateNote = async (id: number, userId: number, noteData: UpdateNoteDto): Promise<NoteResponseDto> => {
   const existingNote = await noteRepo.getNoteById(id, userId);
-  if (!existingNote) throw new Error("Note not found");
+  if (!existingNote) throw new NotFoundError("Note not found");
 
-  return await noteRepo.updateNote(id, userId, noteData);
+  const updatedNote = await noteRepo.updateNote(id, userId, noteData);
+  // Row existed a moment ago; absence now indicates an unexpected failure.
+  if (!updatedNote) throw new AppError("Failed to update note", 500);
+  return updatedNote;
 };
 
 export const deleteNote = async (id: number, userId: number): Promise<void> => {
   const existingNote = await noteRepo.getNoteById(id, userId);
-  if (!existingNote) throw new Error("Note not found");
+  if (!existingNote) throw new NotFoundError("Note not found");
 
   await noteRepo.deleteNote(id, userId);
 };

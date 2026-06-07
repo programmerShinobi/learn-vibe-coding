@@ -4,7 +4,8 @@
   This module centralizes lightweight validation and parsing utilities used by
   controllers to validate incoming HTTP request bodies and parameters. The
   functions operate on `unknown` input and either return a narrowed typed
-  object or throw a descriptive `Error` on validation failure.
+  object or throw a descriptive `ValidationError` (HTTP 400) on failure, which
+  the centralized error middleware maps to a response.
 
   Input shapes are defined in the DTO layer (`src/dto/`) and re-exported here
   for convenience so controllers only need to import from this file.
@@ -18,6 +19,7 @@
 */
 import type { RegisterRequestDto, LoginRequestDto } from "../dto/auth.dto";
 import type { CreateNoteDto, UpdateNoteDto } from "../dto/note.dto";
+import { ValidationError } from "../errors";
 
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -41,7 +43,7 @@ export const parsePositiveInteger = (value: unknown): number | null => {
 
 /**
  * Validate registration input.
- * Throws an Error with a human-readable message if validation fails.
+ * Throws a `ValidationError` with a human-readable message if validation fails.
  */
 export const validateRegisterInput = (body: unknown): RegisterInput => {
   const input = body as Partial<Record<keyof RegisterInput, unknown>>;
@@ -50,15 +52,15 @@ export const validateRegisterInput = (body: unknown): RegisterInput => {
   const password = getTrimmedString(input.password);
 
   if (!name || !email || !password) {
-    throw new Error("Name, email, and password are required");
+    throw new ValidationError("Name, email, and password are required");
   }
 
   if (!emailPattern.test(email)) {
-    throw new Error("Email must be valid");
+    throw new ValidationError("Email must be valid");
   }
 
   if (password.length < 8) {
-    throw new Error("Password must be at least 8 characters");
+    throw new ValidationError("Password must be at least 8 characters");
   }
 
   return { name, email, password };
@@ -73,11 +75,11 @@ export const validateLoginInput = (body: unknown): LoginInput => {
   const password = getTrimmedString(input.password);
 
   if (!email || !password) {
-    throw new Error("Email and password are required");
+    throw new ValidationError("Email and password are required");
   }
 
   if (!emailPattern.test(email)) {
-    throw new Error("Email must be valid");
+    throw new ValidationError("Email must be valid");
   }
 
   return { email, password };
@@ -92,11 +94,11 @@ export const validateNoteInput = (body: unknown): NoteInput => {
   const content = getTrimmedString(input.content);
 
   if (!title || !content) {
-    throw new Error("Title and content are required");
+    throw new ValidationError("Title and content are required");
   }
 
   if (title.length > 255) {
-    throw new Error("Title must be at most 255 characters");
+    throw new ValidationError("Title must be at most 255 characters");
   }
 
   return { title, content };
@@ -111,19 +113,19 @@ export const validateNoteUpdateInput = (body: unknown): NoteUpdateInput => {
 
   if (input.title !== undefined) {
     const title = getTrimmedString(input.title);
-    if (!title) throw new Error("Title cannot be empty");
-    if (title.length > 255) throw new Error("Title must be at most 255 characters");
+    if (!title) throw new ValidationError("Title cannot be empty");
+    if (title.length > 255) throw new ValidationError("Title must be at most 255 characters");
     update.title = title;
   }
 
   if (input.content !== undefined) {
     const content = getTrimmedString(input.content);
-    if (!content) throw new Error("Content cannot be empty");
+    if (!content) throw new ValidationError("Content cannot be empty");
     update.content = content;
   }
 
   if (!update.title && !update.content) {
-    throw new Error("Title or content is required to update");
+    throw new ValidationError("Title or content is required to update");
   }
 
   return update;

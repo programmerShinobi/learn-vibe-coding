@@ -8,13 +8,16 @@ A server application for managing notes with user authentication. It is built wi
 
 ## Key Features
 
-- **User Registration & Login** — Authentication system with encrypted passwords
-- **JWT Token Revocation** — Tokens are invalidated server-side on logout
+- **User Registration & Login** — Authentication system with encrypted passwords (bcrypt, configurable cost)
+- **JWT Token Revocation** — Tokens are invalidated server-side on logout; only a **SHA-256 hash** of the token is stored, never the raw JWT
 - **Notes CRUD** — Create, read, update, and delete notes
 - **DTO Layer** — Explicit request/response types that keep DB schema types internal
-- **Security** — JWT-based protection for user data
+- **Centralized Error Handling** — Custom error classes (`ValidationError`, `NotFoundError`, …) mapped to HTTP statuses by a single middleware
+- **Security Hardening** — `helmet` security headers, rate limiting on auth endpoints, and request body size limits
+- **Health Checks** — Liveness (`GET /`) and database-backed readiness (`GET /health`) endpoints
+- **Graceful Shutdown** — Closes the MySQL pool cleanly on `SIGTERM`/`SIGINT`
 - **Database** — Secure data storage using MySQL
-- **Unit Tests** — 38 automated tests to ensure code quality
+- **Unit Tests** — 49 automated tests to ensure code quality
 - **Hot Reload** — Code changes are reflected instantly without restarting the server
 
 ---
@@ -29,6 +32,9 @@ A server application for managing notes with user authentication. It is built wi
 | **Database** | MySQL 8+ | A reliable and widely used database system |
 | **Authentication** | JWT | A token-based system to verify user identity |
 | **Password Security** | bcryptjs | A library for hashing passwords securely |
+| **Security Headers** | [helmet](https://helmetjs.github.io/) | Sets safe HTTP response headers (HSTS, etc.) |
+| **Rate Limiting** | [express-rate-limit](https://express-rate-limit.mintlify.app/) | Throttles auth endpoints to deter brute-force |
+| **Request Logging** | [morgan](https://github.com/expressjs/morgan) | Logs each HTTP request for runtime visibility |
 
 ---
 
@@ -41,16 +47,20 @@ A server application for managing notes with user authentication. It is built wi
 │   ├── 📄 server.ts           # Entrypoint - starts the server
 │   │
 │   ├── 📁 config/             # Application configuration
+│   │   ├── 📄 auth.config.ts  # bcrypt cost factor (configurable)
 │   │   ├── 📄 cors.config.ts  # CORS allowed origins configuration
-│   │   ├── 📄 db.config.ts    # Database connection configuration
+│   │   ├── 📄 db.config.ts    # Database connection configuration (DATABASE_URL required)
 │   │   └── 📄 jwt.config.ts   # JWT configuration (secret, expiration)
 │   │
 │   ├── 📁 db/                 # Database
-│   │   └── 📄 index.ts        # Drizzle ORM initialization & MySQL connection
+│   │   └── 📄 index.ts        # Drizzle ORM init, MySQL pool, pingDb/closeDb helpers
 │   │
 │   ├── 📁 dto/                # Data Transfer Objects
 │   │   ├── 📄 auth.dto.ts     # Auth request & response types (RegisterRequestDto, LoginResponseDto, …)
 │   │   └── 📄 note.dto.ts     # Note request & response types (CreateNoteDto, NoteResponseDto, …)
+│   │
+│   ├── 📁 errors/             # Custom error classes
+│   │   └── 📄 app-error.ts    # AppError + ValidationError, NotFoundError, ConflictError, …
 │   │
 │   ├── 📁 schema/             # Database table definitions (Drizzle ORM)
 │   │   ├── 📄 auth.schema.ts  # 'users' table structure
@@ -60,18 +70,22 @@ A server application for managing notes with user authentication. It is built wi
 │   ├── 📁 repositories/       # Direct database access
 │   │   ├── 📄 auth.repository.ts  # Queries for users table
 │   │   ├── 📄 note.repository.ts  # Queries for notes table
-│   │   └── 📄 token.repository.ts # Queries for revoked_tokens table
+│   │   ├── 📄 token.repository.ts # Revoked-token hashing, lookup & cleanup
+│   │   └── 📄 db-errors.ts        # Detects duplicate-key (unique) DB errors
 │   │
 │   ├── 📁 services/           # Business logic
 │   │   ├── 📄 auth.service.ts # Registration, login, password hashing
 │   │   └── 📄 note.service.ts # Notes CRUD logic
 │   │
 │   ├── 📁 controllers/        # Handle HTTP requests/responses
-│   │   ├── 📄 auth.controller.ts  # Register, login, logout endpoints
-│   │   └── 📄 note.controller.ts  # Notes CRUD endpoints
+│   │   ├── 📄 auth.controller.ts   # Register, login, logout endpoints
+│   │   ├── 📄 health.controller.ts # Liveness & readiness endpoints
+│   │   └── 📄 note.controller.ts   # Notes CRUD endpoints
 │   │
 │   ├── 📁 middlewares/        # Functions executed before controllers
-│   │   └── 📄 auth.middleware.ts  # JWT token verification & revocation check
+│   │   ├── 📄 auth.middleware.ts        # JWT token verification & revocation check
+│   │   ├── 📄 error.middleware.ts       # Centralized error handling + 404 handler
+│   │   └── 📄 rate-limit.middleware.ts  # Rate limiter for auth endpoints
 │   │
 │   ├── 📁 routes/             # Endpoint definitions
 │   │   ├── 📄 auth.routes.ts  # Routes for /api/v1/auth
@@ -82,7 +96,7 @@ A server application for managing notes with user authentication. It is built wi
 │       ├── 📄 jwt.utils.ts             # Generate & verify JWT
 │       └── 📄 request-validation.ts    # Input validation helpers
 │
-├── 📁 test/                   # All unit tests (38 tests across 19 files)
+├── 📁 test/                   # All unit tests (49 tests across 23 files)
 │   ├── 📁 config/             # Tests for db.config and jwt.config
 │   ├── 📁 controllers/        # Tests for auth and note controllers
 │   ├── 📁 db/                 # Tests for DB initialization
@@ -218,7 +232,7 @@ cp .env.example .env
 **Edit the `.env` file with your own values:**
 
 ```env
-# Database configuration
+# Database configuration (REQUIRED — the app fails to start if unset)
 DATABASE_URL="mysql://root:mysql@localhost:3306/vibe_db"
 # Format: mysql://username:password@host:port/database_name
 
@@ -228,9 +242,21 @@ JWT_SECRET="replace-with-a-random-string-of-32-or-more-characters"
 # Application port
 PORT=3000
 
-# CORS (allowed request origin)
+# CORS (allowed request origin; empty = allow all, for development)
 CORS_ORIGIN=
+
+# bcrypt password-hashing cost factor (OWASP recommends >= 12). Range 10-15.
+BCRYPT_COST=12
+
+# Rate limiting for /auth/login and /auth/register
+AUTH_RATE_LIMIT_WINDOW_MS=900000   # window length in ms (15 minutes)
+AUTH_RATE_LIMIT_MAX=10             # max requests per window per IP
 ```
+
+> **Note:** Unlike before, there is no baked-in default database URL. Both
+> `DATABASE_URL` and `JWT_SECRET` must be set or the server refuses to start
+> (fail-fast). `BCRYPT_COST` and the `AUTH_RATE_LIMIT_*` variables are optional
+> and fall back to safe defaults.
 
 ---
 
@@ -243,6 +269,7 @@ Docker lets you run applications inside isolated containers.
 ```bash
 docker run -d \
   --name mysql-db \
+  --restart unless-stopped \
   -e MYSQL_ROOT_PASSWORD=mysql \
   -e MYSQL_DATABASE=vibe_db \
   -p 3306:3306 \
@@ -253,6 +280,7 @@ docker run -d \
 
 - `-d` = run in the background
 - `--name mysql-db` = container name
+- `--restart unless-stopped` = auto-start on boot / Docker restart, so you never have to start it manually again
 - `-e MYSQL_ROOT_PASSWORD=mysql` = MySQL root password
 - `-e MYSQL_DATABASE=vibe_db` = create a database named `vibe_db`
 - `-p 3306:3306` = port mapping
@@ -263,6 +291,29 @@ docker run -d \
 ```bash
 docker ps
 ```
+
+> **Already created the container without a restart policy?** If you find
+> yourself running `docker start mysql-db` before every session, set the policy
+> once (no data loss, no recreation needed):
+>
+> ```bash
+> docker update --restart unless-stopped mysql-db
+> ```
+>
+> Verify with: `docker inspect -f '{{.HostConfig.RestartPolicy.Name}}' mysql-db`
+
+#### Option A (alternative): Docker Compose
+
+A `docker-compose.yml` is included (container name `mysql-db`, `restart: unless-stopped`, with a healthcheck). On a fresh machine you can simply run:
+
+```bash
+docker compose up -d
+```
+
+> **Caution:** Compose uses its own named volume. If you already have a
+> `mysql-db` container with data, do **not** recreate it via Compose — you would
+> start an empty database. Keep your existing container and use the
+> `docker update` command above instead.
 
 #### Option B: Use Local MySQL
 
@@ -329,7 +380,7 @@ The server is now running successfully.
 | Command | Function | When to Use |
 |---------|----------|-------------|
 | `bun run dev` | Start the server with auto-reload | During development |
-| `bun run test` | Run all unit tests (38 tests) | Before pushing changes |
+| `bun run test` | Run all unit tests (49 tests) | Before pushing changes |
 | `bun run typecheck` | Check for TypeScript errors | Validate syntax without running |
 | `bun run db:push` | Update database schema | After changing schema |
 | `bun run db:generate` | Generate migration files | After updating schema in code |
@@ -369,7 +420,7 @@ This table stores user information.
 
 ```text
 id | name      | email            | password (hash) | created_at
-1  | John Doe  | john@example.com | $2a$10$xxxx...  | 2024-06-03
+1  | John Doe  | john@example.com | $2a$12$xxxx...  | 2024-06-03
 ```
 
 ---
@@ -411,11 +462,11 @@ Stores JWTs that have been explicitly invalidated on logout. The auth middleware
 | Column | Type | Description |
 |-------|------|-------------|
 | `id` | INT | Primary key (auto increment) |
-| `token` | VARCHAR(1024) | Full JWT string that was revoked |
+| `token_hash` | VARCHAR(64), UNIQUE | **SHA-256 hash** of the revoked JWT (the raw token is never stored) |
 | `expires_at` | TIMESTAMP | Token's original expiry time (used for cleanup) |
 | `created_at` | TIMESTAMP | When the token was revoked |
 
-**Important:** For production, consider storing a hash of the token instead of the raw JWT string to avoid keeping sensitive values in the database in plaintext.
+**Security:** Only a SHA-256 hash of the token is persisted, so a database leak does not expose usable bearer tokens. Lookups hash the incoming token and compare. Expired rows are purged automatically by a periodic cleanup job (hourly), so the table does not grow without bound.
 
 ---
 
@@ -489,6 +540,36 @@ The `data` field can be an object, an array, or `null`.
 
 ---
 
+## Health Check Endpoints
+
+These endpoints are unauthenticated and useful for monitoring / orchestrators.
+
+### Liveness
+
+```http
+GET /
+```
+
+Confirms the process is up and serving.
+
+```json
+{ "message": "Notes API is running", "data": null }
+```
+
+### Readiness
+
+```http
+GET /health
+```
+
+Confirms the app can serve traffic by pinging the database. Returns **200** when the database is reachable and **503** when it is not.
+
+```json
+{ "message": "ok", "data": { "database": "up" } }
+```
+
+---
+
 ## Authentication Endpoints
 
 ### 1. Register
@@ -529,7 +610,7 @@ curl -X POST http://localhost:3000/api/v1/auth/register \
 }
 ```
 
-**Error response (400 - email already registered):**
+**Error response (409 - email already registered):**
 
 ```json
 {
@@ -537,6 +618,10 @@ curl -X POST http://localhost:3000/api/v1/auth/register \
   "data": null
 }
 ```
+
+> Registration relies on the database's unique constraint on `email` (rather than
+> a separate pre-check), so it is safe against two concurrent sign-ups racing
+> with the same email — the duplicate is reported as a `409 Conflict`.
 
 ---
 
@@ -875,8 +960,14 @@ curl -X DELETE http://localhost:3000/api/v1/notes/1 \
 | **201** | Created | Resource created successfully | — |
 | **400** | Bad Request | Invalid or incomplete input | Check the submitted data |
 | **401** | Unauthorized | Missing, invalid, or expired token | Log in again and get a new token |
+| **403** | Forbidden | Authenticated but not allowed (e.g. another user's notes) | Use your own resources |
 | **404** | Not Found | Requested resource does not exist | Check the ID or endpoint URL |
+| **409** | Conflict | Resource already exists (e.g. duplicate email) | Use a different value |
+| **429** | Too Many Requests | Rate limit hit on an auth endpoint | Wait for the window to reset, then retry |
 | **500** | Server Error | Internal server issue | Contact the developer |
+| **503** | Service Unavailable | A dependency (the database) is unreachable | Check that MySQL is running |
+
+All errors are produced by a single centralized error-handling middleware, so every error response shares the same `{ "message": ..., "data": null }` shape.
 
 **Example error responses:**
 
@@ -911,7 +1002,7 @@ curl -X DELETE http://localhost:3000/api/v1/notes/1 \
 
 ## Testing
 
-This application includes **38 unit tests** across **19 files** to ensure code quality.
+This application includes **49 unit tests** across **23 files** to ensure code quality.
 
 **Run all tests:**
 
@@ -922,10 +1013,9 @@ bun run test
 **Expected output:**
 
 ```text
-38 pass
+49 pass
 0 fail
-114 expect() calls
-Ran 38 tests across 19 files.
+Ran 49 tests across 23 files.
 ```
 
 **Test coverage includes:**
@@ -935,10 +1025,10 @@ Ran 38 tests across 19 files.
 | **Config** | DB and JWT configuration loading & validation |
 | **DB** | Drizzle ORM initialization |
 | **Schema** | Drizzle table definitions |
-| **Repositories** | Auth and note database queries |
+| **Repositories** | Auth/note queries, revoked-token hashing, duplicate-key detection |
 | **Services** | Business logic for auth and notes |
-| **Controllers** | Register, login, logout, notes CRUD handlers |
-| **Middleware** | JWT verification and token revocation check |
+| **Controllers** | Register, login, logout, notes CRUD, and health handlers |
+| **Middleware** | JWT verification, token revocation, and centralized error handling |
 | **Routes** | Endpoint wiring for `/auth` and `/notes` |
 | **Utils** | JWT generate and verify helpers |
 | **Test utils** | Shared mock helpers |
@@ -972,10 +1062,10 @@ JWT (*JSON Web Token*) is a secure way to identify users without sending their p
 
 ```text
 Original password: "password123"
-Hashed password: "$2a$10$kN21cpF3/Us.MNNC3z0CuO2/q94F.."
+Hashed password: "$2a$12$kN21cpF3/Us.MNNC3z0CuO2/q94F.."
 ```
 
-Passwords are never stored in their original form. Only the hash is saved.
+Passwords are never stored in their original form. Only the hash is saved. The hashing **cost factor** defaults to `12` (per OWASP guidance) and is configurable via the `BCRYPT_COST` environment variable.
 
 ---
 
@@ -1033,12 +1123,31 @@ bun install
 
 ### Error: `ECONNREFUSED 127.0.0.1:3306`
 
-**Meaning:** MySQL is not running.
+**Meaning:** MySQL is not running. (`GET /health` will also return `503` in this case.)
 
 **Solution:**
 
 - If using Docker: `docker start mysql-db`
+- To stop having to start it manually every session, set a restart policy once:
+  `docker update --restart unless-stopped mysql-db`
 - If using local MySQL: make sure the MySQL service is running
+
+### Error: `Unknown column 'token_hash' in 'field list'`
+
+**Meaning:** Your database schema is older than the code (the `revoked_tokens` table still has the legacy `token` column).
+
+**Solution:**
+
+- Sync the schema: `bun run db:push`
+- This project's revoked-token storage moved from the raw `token` column to a hashed `token_hash` column (migration `0003`).
+
+### Error: `DATABASE_URL is required` or `JWT_SECRET is required`
+
+**Meaning:** A required environment variable is missing — the app fails fast instead of using insecure defaults.
+
+**Solution:**
+
+- Ensure your `.env` file exists (`cp .env.example .env`) and both values are set.
 
 ### Error: `Invalid token`
 

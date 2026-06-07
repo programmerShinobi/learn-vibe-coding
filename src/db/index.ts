@@ -29,3 +29,19 @@ const poolConnection = mysql.createPool({
 // Compose schemas and initialize Drizzle ORM.
 // Include token schema for revoked token storage
 export const db = drizzle(poolConnection, { schema: { ...authSchema, ...noteSchema, ...tokenSchema }, mode: "default" });
+
+/**
+ * Run a trivial query to confirm the database is reachable. Used by the
+ * readiness health check. Throws if the connection is unavailable.
+ */
+export const pingDb = async (): Promise<void> => {
+  await poolConnection.query("SELECT 1");
+};
+
+/**
+ * Close the underlying MySQL connection pool. Called during graceful shutdown
+ * so in-flight connections are released cleanly before the process exits.
+ */
+export const closeDb = async (): Promise<void> => {
+  await poolConnection.end();
+};

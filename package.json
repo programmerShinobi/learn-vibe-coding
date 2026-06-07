@@ -5,7 +5,7 @@
   "private": true,
   "scripts": {
     "dev": "bun run --watch src/server.ts",
-    "test": "JWT_SECRET=test-secret-with-at-least-32-characters bun test --isolate",
+    "test": "JWT_SECRET=test-secret-with-at-least-32-characters DATABASE_URL=mysql://test:test@localhost:3306/test_db NODE_ENV=test bun test --isolate",
     "typecheck": "tsc --noEmit",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
@@ -17,6 +17,7 @@
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.6",
     "@types/jsonwebtoken": "^9.0.10",
+    "@types/morgan": "^1.9.10",
     "drizzle-kit": "^0.31.10"
   },
   "peerDependencies": {
@@ -28,7 +29,10 @@
     "dotenv": "^17.4.2",
     "drizzle-orm": "^0.45.2",
     "express": "^5.2.1",
+    "express-rate-limit": "^8.5.2",
+    "helmet": "^8.2.0",
     "jsonwebtoken": "^9.0.3",
+    "morgan": "^1.11.0",
     "mysql2": "^3.22.4"
   }
 }
