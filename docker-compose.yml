@@ -1,12 +1,12 @@
-version: '3.8'
-
 services:
   # MySQL database service definition
   db:
     image: mysql:8.0
-    container_name: vibe-mysql
-    # Restart the container automatically if it stops
-    restart: always
+    # Match the container name used locally so `docker start mysql-db` works.
+    container_name: mysql-db
+    # Auto-start on boot / Docker daemon restart, but honor a manual `docker stop`
+    # so you never have to run `docker start mysql-db` by hand again.
+    restart: unless-stopped
     environment:
       # Set the root password (matches our default .env configuration)
       MYSQL_ROOT_PASSWORD: mysql
@@ -18,6 +18,12 @@ services:
     volumes:
       # Persist MySQL data using a named volume
       - mysql_data:/var/lib/mysql
+    # Report readiness so dependents can wait for an accepting MySQL.
+    healthcheck:
+      test: ['CMD', 'mysqladmin', 'ping', '-h', 'localhost', '-pmysql']
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
 volumes:
   # Named volume for persistent database storage
