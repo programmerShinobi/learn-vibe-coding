@@ -18,6 +18,7 @@
     treat the result as `unknown` and narrow appropriately.
 */
 import jwt from "jsonwebtoken";
+import type { SignOptions } from "jsonwebtoken";
 import { jwtConfig } from "../config/jwt.config";
 
 export type AuthTokenPayload = {
@@ -33,7 +34,18 @@ export type AuthTokenPayload = {
  * @returns A signed JWT string.
  */
 export const generateToken = (payload: AuthTokenPayload): string => {
-  return jwt.sign(payload, jwtConfig.secret, { expiresIn: jwtConfig.expiresIn as any });
+  const expiresIn = jwtConfig.expiresIn as SignOptions["expiresIn"];
+  return jwt.sign(payload, jwtConfig.secret, { expiresIn });
+};
+
+/**
+ * Decode a JWT without verifying its signature.
+ * Returns the decoded payload (or `null` for malformed tokens). Use only when
+ * the token has already been verified elsewhere — e.g. reading `exp` on logout
+ * after the `authenticate` middleware has validated the token.
+ */
+export const decodeToken = (token: string): unknown => {
+  return jwt.decode(token);
 };
 
 /**

@@ -9,12 +9,14 @@
 import { Router } from "express";
 import { register, login, logout } from "../controllers/auth.controller";
 import { authenticate } from "../middlewares/auth.middleware";
+import { authRateLimiter } from "../middlewares/rate-limit.middleware";
 
 const router = Router();
 
-// Public routes - no authentication required
-router.post("/register", register);
-router.post("/login", login);
+// Public routes - no authentication required. Rate limited to slow down
+// brute-force / credential-stuffing attempts against these endpoints.
+router.post("/register", authRateLimiter, register);
+router.post("/login", authRateLimiter, login);
 
 // Protected route - requires a valid JWT token
 router.post("/logout", authenticate, logout);

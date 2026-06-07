@@ -36,13 +36,12 @@ describe("auth controller", () => {
     expect(res.body).toEqual({ message: "User created successfully", data: { id: 1, name: "User", email: "user@example.com" } });
   });
 
-  it("rejects incomplete registration data", async () => {
+  it("rejects incomplete registration data by throwing a 400 error", async () => {
     const req = { body: { email: "user@example.com" } } as Request;
-    const res = createMockResponse();
 
-    await register(req, res);
-
-    expect(res.statusCode).toBe(400);
+    // The validator throws a ValidationError (400); the controller lets it
+    // propagate to the centralized error middleware instead of catching it.
+    await expect(register(req, createMockResponse())).rejects.toMatchObject({ statusCode: 400 });
     expect(registerUserMock).not.toHaveBeenCalled();
   });
 

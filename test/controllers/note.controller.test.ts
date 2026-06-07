@@ -7,6 +7,7 @@
 import { beforeEach, describe, expect, it, mock } from "bun:test";
 import type { Request } from "express";
 import { createMockResponse } from "../test-utils/http";
+import { ForbiddenError, NotFoundError, ValidationError } from "../../src/errors";
 
 const createNoteMock = mock(async (noteData: any) => ({ id: 1, ...noteData }));
 const getAllNotesMock = mock(async (userId: number) => [{ id: 1, userId }]);
@@ -46,14 +47,14 @@ describe("note controller", () => {
     expect(res.statusCode).toBe(201);
   });
 
-  it("rejects missing note fields and invalid ids", async () => {
-    const createRes = createMockResponse();
-    await controller.createNote({ body: {}, user: { id: 7 } } as Request, createRes);
-    expect(createRes.statusCode).toBe(400);
+  it("rejects missing note fields and invalid ids by throwing 400 errors", async () => {
+    // Controllers no longer catch errors; they throw typed errors that the
+    // centralized error middleware maps to HTTP responses.
+    const createPromise = controller.createNote({ body: {}, user: { id: 7 } } as Request, createMockResponse());
+    await expect(createPromise).rejects.toBeInstanceOf(ValidationError);
 
-    const getRes = createMockResponse();
-    await controller.getNoteById({ params: { id: "abc" }, user: { id: 7 } } as unknown as Request, getRes);
-    expect(getRes.statusCode).toBe(400);
+    const getPromise = controller.getNoteById({ params: { id: "abc" }, user: { id: 7 } } as unknown as Request, createMockResponse());
+    await expect(getPromise).rejects.toMatchObject({ statusCode: 400 });
   });
 
   it("returns notes by common query paths", async () => {
@@ -73,11 +74,12 @@ describe("note controller", () => {
   });
 
   it("rejects access to another user's notes", async () => {
-    const res = createMockResponse();
+    const promise = controller.getNotesByUserId(
+      { params: { userId: "8" }, user: { id: 7 } } as unknown as Request,
+      createMockResponse()
+    );
 
-    await controller.getNotesByUserId({ params: { userId: "8" }, user: { id: 7 } } as unknown as Request, res);
-
-    expect(res.statusCode).toBe(403);
+    await expect(promise).rejects.toBeInstanceOf(ForbiddenError);
     expect(getNotesByUserIdMock).not.toHaveBeenCalled();
   });
 
@@ -93,12 +95,14 @@ describe("note controller", () => {
     expect(deleteRes.statusCode).toBe(200);
   });
 
-  it("maps not found service errors to 404", async () => {
-    getNoteByIdMock.mockRejectedValueOnce(new Error("Note not found"));
-    const res = createMockResponse();
+  it("propagates not-found service errors (mapped to 404 by the error middleware)", async () => {
+    getNoteByIdMock.mockRejectedValueOnce(new NotFoundError("Note not found"));
 
-    await controller.getNoteById({ params: { id: "99" }, user: { id: 7 } } as unknown as Request, res);
+    const promise = controller.getNoteById(
+      { params: { id: "99" }, user: { id: 7 } } as unknown as Request,
+      createMockResponse()
+    );
 
-    expect(res.statusCode).toBe(404);
+    await expect(promise).rejects.toMatchObject({ statusCode: 404 });
   });
 });

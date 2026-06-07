@@ -44,13 +44,15 @@ describe("auth service", () => {
   it("registers a new user without returning password", async () => {
     const user = await registerUser({ name: "User", email: "user@example.com", password: "secret" });
 
-    expect(findUserByEmailMock).toHaveBeenCalledWith("user@example.com");
+    // Registration relies on the DB unique constraint, not a pre-check query.
     expect(createUserMock).toHaveBeenCalled();
     expect(user).toEqual({ id: 1, name: "User", email: "user@example.com", createdAt: userRow.createdAt, updatedAt: userRow.updatedAt });
   });
 
-  it("rejects duplicate email during registration", async () => {
-    findUserByEmailMock.mockResolvedValue(userRow);
+  it("translates a duplicate-key DB error into a conflict", async () => {
+    // Two concurrent registrations both pass any pre-check; the unique
+    // constraint is the source of truth and surfaces as ER_DUP_ENTRY.
+    createUserMock.mockRejectedValue(Object.assign(new Error("dup"), { code: "ER_DUP_ENTRY" }));
 
     await expect(registerUser({ name: "User", email: "user@example.com", password: "secret" })).rejects.toThrow("User already exists");
   });

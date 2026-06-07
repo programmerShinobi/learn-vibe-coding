@@ -76,7 +76,9 @@ export const authenticate = async (req: Request, res: Response, next: NextFuncti
     try {
       revoked = await isTokenRevoked(token);
     } catch (dbErr) {
-      // Treat DB errors as authorization failures for now.
+      // Log the underlying DB error for debugging, then treat it as an
+      // authorization failure so a transient DB issue cannot bypass revocation.
+      console.error("auth.middleware: revocation check failed:", dbErr);
       res.status(401).json({ message: "Unauthorized: Token missing or invalid", data: null });
       return;
     }
